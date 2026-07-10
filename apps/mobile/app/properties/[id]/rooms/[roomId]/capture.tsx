@@ -78,20 +78,55 @@ export default function CaptureScreen() {
     setSubmitting(true);
 
     try {
-      // Register frames in session
+      const frameIds: string[] = [];
+      const uploads = [];
+
+      // 1. Register frames and prepare for upload
       for (const uri of capturedPhotos) {
-        await captureApi.registerFrame(sessionId, {
-          original_filename: uri.split('/').pop(),
+        // Read file info (size)
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        const fileSize = fileInfo.exists ? fileInfo.size : 0;
+
+        const frame = await captureApi.registerFrame(sessionId, {
+          original_filename: uri.split('/').pop() || 'photo.jpg',
           content_type: 'image/jpeg',
+          file_size_bytes: fileSize,
           is_accepted: true,
           captured_at: new Date().toISOString(),
         });
+        
+        frameIds.push(frame.id);
+        uploads.push({ uri, frameId: frame.id });
       }
 
-      // Finalize the session
-      await captureApi.finalize(sessionId);
+      // 2. Get presigned URLs
+      const { urls } = await captureApi.getUploadUrls(sessionId, frameIds);
 
-      // Start reconstruction job
+      // 3. Upload files to MinIO
+      for (const upload of uploads) {
+        const urlData = urls.find((u) => u.frame_id === upload.frameId);
+        if (!urlData) throw new Error('Missing upload URL');
+
+        // Fetch the local file as a blob
+        const response = await fetch(upload.uri);
+        const blob = await response.blob();
+
+        // Upload to S3/MinIO
+        const uploadResponse = await fetch(urlData.upload_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: blob,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${upload.frameId}`);
+        }
+      }
+
+      // 4. Finalize the session
+      await captureApi.finalize(sessionId, frameIds[0]); // Use first frame as selected
+
+      // 5. Start reconstruction job
       const job = await import('../../../../../services/api').then((m) =>
         m.reconstructionApi.create(sessionId, 'image_blaster')
       );

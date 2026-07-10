@@ -147,16 +147,44 @@ async def get_upload_urls(session_id: UUID, frame_ids: list[UUID], db: AsyncSess
     """Get pre-signed S3 upload URLs for frames."""
     await _get_session_or_404(session_id, db)
 
-    # TODO: Generate real S3 signed URLs using boto3
-    import uuid as _uuid
+    from app.core.config import get_settings
+    import boto3
+    from botocore.config import Config
+
+    settings = get_settings()
+
+    # Configure boto3 client for MinIO/S3
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=settings.s3_endpoint,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+        region_name=settings.s3_region,
+        config=Config(signature_version="s3v4"),
+    )
+
     urls = []
     for frame_id in frame_ids:
         key = f"captures/{session_id}/{frame_id}.jpg"
-        urls.append({
-            "frame_id": str(frame_id),
-            "storage_key": key,
-            "upload_url": f"http://localhost:9000/homie-images/{key}?mock=true",
-        })
+        
+        # Generate presigned PUT URL (valid for 1 hour)
+        try:
+            upload_url = s3_client.generate_presigned_url(
+                ClientMethod="put_object",
+                Params={
+                    "Bucket": settings.s3_bucket_images,
+                    "Key": key,
+                    "ContentType": "image/jpeg",
+                },
+                ExpiresIn=3600,
+            )
+            urls.append({
+                "frame_id": str(frame_id),
+                "storage_key": key,
+                "upload_url": upload_url,
+            })
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate upload URL: {str(e)}")
 
     return {"urls": urls}
 

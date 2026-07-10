@@ -32,12 +32,27 @@ async def create_job(data: ReconstructionJobCreate, db: AsyncSession = Depends(g
     db.add(job)
     await db.flush()
 
+    # Get the selected frame or all accepted frames
+    from app.models.capture import CaptureFrame
+    if session.selected_frame_id:
+        result = await db.execute(select(CaptureFrame).where(CaptureFrame.id == session.selected_frame_id))
+        frames = result.scalars().all()
+    else:
+        result = await db.execute(select(CaptureFrame).where(CaptureFrame.session_id == session.id, CaptureFrame.is_accepted == True))
+        frames = result.scalars().all()
+
+    if not frames:
+        raise HTTPException(status_code=400, detail="No accepted frames found for this capture session")
+
+    # Assuming storage keys are captures/session_id/frame_id.jpg as generated in get_upload_urls
+    image_paths = [f"captures/{session.id}/{f.id}.jpg" for f in frames]
+
     # Enqueue Celery task (non-blocking)
     try:
         from celery_app import app as celery_app  # type: ignore
         celery_app.send_task(
             "reconstruction.run",
-            args=[str(job.id), [], data.engine, data.config or {}],
+            args=[str(job.id), image_paths, data.engine, data.config or {}],
         )
         job.status = JobStatus.QUEUED
         await db.flush()

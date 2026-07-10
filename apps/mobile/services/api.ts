@@ -71,10 +71,10 @@ export const captureApi = {
       body: JSON.stringify(frameIds),
     }),
   finalize: (sessionId: string, selectedFrameId?: string) =>
-    request<{ status: string }>(`/api/v1/capture-sessions/${sessionId}/finalize`, {
-      method: 'POST',
-      body: JSON.stringify({ selected_frame_id: selectedFrameId }),
-    }),
+    request<{ status: string }>(
+      `/api/v1/capture-sessions/${sessionId}/finalize${selectedFrameId ? '?selected_frame_id=' + selectedFrameId : ''}`,
+      { method: 'POST' }
+    ),
 };
 
 // ── Reconstruction ───────────────────────────────────────────
