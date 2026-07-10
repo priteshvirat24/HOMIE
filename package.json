@@ -1,0 +1,17 @@
+{
+  "name": "homie",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/viewer",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:viewer": "npm run dev --workspace=apps/viewer",
+    "build:viewer": "npm run build --workspace=apps/viewer",
+    "test:viewer": "npm test --workspace=apps/viewer"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

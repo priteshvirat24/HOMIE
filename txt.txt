@@ -1,0 +1,2416 @@
+# MASTER PROMPT: BUILD A PRODUCTION-GRADE MOBILE APP FOR GUIDED HOME CAPTURE AND AI-BASED 3D RECONSTRUCTION
+
+You are a Principal Mobile Engineer, Computer Vision Engineer, 3D Graphics Engineer, ML Infrastructure Engineer, Backend Architect, Product Designer, and DevOps Engineer working autonomously inside an AI IDE.
+
+Your task is to design and build a production-grade mobile application that allows users to capture guided photographs of rooms, reconstruct those rooms into navigable 3D environments using an open-source reconstruction repository, and explore the generated environment directly on a mobile phone using first-person controls.
+
+Do not build a fake prototype.
+
+Do not use placeholder implementations for core functionality.
+
+Do not simulate reconstruction progress.
+
+Do not hardcode generated rooms.
+
+Do not claim that reconstruction works until the external repository has been inspected, installed, executed, tested, and its actual output format verified.
+
+The application must be architected around the actual technical capabilities and limitations of the provided open-source repository.
+
+---
+
+# 1. EXTERNAL RECONSTRUCTION REPOSITORY
+
+Repository:
+
+IMAGE BLASTER REPOSITORY URL:https://github.com/neilsonnn/image-blaster
+
+Skip to content
+neilsonnn
+image-blaster
+Repository navigation
+Code
+Issues
+3
+ (3)
+Pull requests
+6
+ (6)
+Agents
+Actions
+Projects
+Security and quality
+Insights
+Owner avatar
+image-blaster
+Public
+neilsonnn/image-blaster
+Go to file
+t
+T
+Name		
+neilsonnn
+neilsonnn
+license
+4acb43b
+ · 
+2 months ago
+.claude
+tweaks, show loading states, spawn pos, no hot reload in editor, bett…
+2 months ago
+.cursor/rules
+ground plane, caption to world, rename image skill
+2 months ago
+app
+tweaks, show loading states, spawn pos, no hot reload in editor, bett…
+2 months ago
+input
+input folder keep
+2 months ago
+worlds
+git keep for folders
+3 months ago
+.claudeignore
+claude ignore
+2 months ago
+.env.example
+editor
+2 months ago
+.gitattributes
+Initial commit
+3 months ago
+.gitignore
+input folder keep
+2 months ago
+CLAUDE.md
+agent spawning
+3 months ago
+LICENSE.md
+license
+2 months ago
+README.md
+Update README.md
+2 months ago
+bun.lock
+revert name change
+2 months ago
+package.json
+revert name change
+2 months ago
+Repository files navigation
+README
+MIT license
+image-blaster-1
+image-blaster
+Creates 3D environments, SFX, and meshes from a single image using Claude skills, World Labs, and FAL.
+
+Can take you from an image to a fully meshed 3D environment in < 5 minutes, great for jumpstarting 3D work. Go full blast.
+
+Quickstart
+Open a Terminal, enter git clone https://github.com/neilsonnn/image-blaster
+Enter the directory with cd image-blaster
+Run claude (install with curl -fsSL https://claude.ai/install.sh | bash)
+Say hello to Claude, and give them your API key for World Labs and FAL.
+Put an image into input/ directory and ask Claude to blast it and confirm each step with me.
+Description
+By default image-blaster will use your input image to create:
+
+3D models (.glb, .obj) of all dynamic objects
+Gaussian splat (.spz) of the static environment,
+Ambient looping sound and object specific physics SFX (.mp3)
+Extensions
+You can embed image-blaster under the assets of any game engine, DCC software, or web app.
+
+Unity, Unreal, or Godot game engine
+Blender, 3DS Max, or Maya or other DCC software
+Three.js web app or Electron app
+Advanced
+IMAGE-BLASTER uses a few generation models:
+
+marble-1.1 - World Labs Marble model creates the explorable environment.
+nano-banana - default image edit preference for source cleanup, clean plates, and object reference images.
+gpt-image-2 - alternate image edit provider when the edit skill is asked to prefer it.
+hunyuan-3d - Hunyuan 3D model creates 3D object models through FAL.
+elevenlabs-sfx - ElevenLabs sound effects model creates ambient and object-specific sounds.
+3D model creation supports these Hunyuan parameters:
+
+--face-count <40000-1500000>: target face count. IMAGE-BLASTER defaults to 50000; Hunyuan's API default is 500000.
+--enable-pbr true|false: enable PBR material generation. Defaults to true.
+--generate-type Normal|LowPoly|Geometry: Normal creates a textured model, LowPoly applies polygon reduction, and Geometry creates a white geometry-only model. Defaults to Normal.
+--polygon-type triangle|quadrilateral: polygon type for LowPoly. Defaults to triangle.
+Examples
+Video game level concepts? IMAGE-BLAST it.
+Your childhood bedroom? IMAGE-BLAST it.
+Need an environment for a robot? IMAGE-BLAST it.
+A film location scout? IMAGE-BLAST it.
+An architectural rendering? IMAGE-BLAST it.
+Development
+remove /app from the .claudeignore file to give Claude the ability to change the React viewer.
+About
+An image-to-world skillset for Claude.
+
+Resources
+ Readme
+License
+ MIT license
+ Activity
+Stars
+ 4.7k stars
+Watchers
+ 50 watching
+Forks
+ 477 forks
+Report repository
+Releases
+No releases published
+Packages
+No packages published
+Contributors
+1
+@neilsonnn
+neilsonnn Neilson K-S
+Languages
+TypeScript
+71.5%
+ 
+JavaScript
+27.5%
+ 
+Other
+1.0%
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information
+
+
+Documentation:
+
+[PASTE README, DOCUMENTATION, EXAMPLES, PAPERS, MODEL LINKS, OR SETUP INSTRUCTIONS HERE]
+
+The first task is NOT writing application code.
+
+The first task is repository investigation.
+
+Inspect:
+
+* README
+* source code
+* examples
+* demos
+* installation scripts
+* dependency files
+* model checkpoints
+* inference scripts
+* training scripts
+* preprocessing pipeline
+* postprocessing pipeline
+* camera requirements
+* image requirements
+* hardware requirements
+* GPU requirements
+* supported operating systems
+* licenses
+* output formats
+* visualization tools
+* existing APIs
+* command-line interfaces
+* Docker configuration
+* active issues
+* known limitations
+
+Determine exactly what the repository does.
+
+Determine whether it performs:
+
+* Structure from Motion
+* camera pose estimation
+* sparse reconstruction
+* dense reconstruction
+* photogrammetry
+* Multi-View Stereo
+* Neural Radiance Fields
+* 3D Gaussian Splatting
+* mesh generation
+* textured mesh generation
+* point-cloud reconstruction
+* depth estimation
+* novel-view synthesis
+* scene completion
+* object reconstruction
+* room reconstruction
+
+Do not assume any capability.
+
+Create:
+
+docs/reconstruction-repository-analysis.md
+
+The document must explain:
+
+1. What the repository actually does.
+2. Required input.
+3. Expected number of images.
+4. Whether image ordering matters.
+5. Whether EXIF metadata is required.
+6. Whether camera intrinsics are required.
+7. Whether camera poses are required.
+8. Whether the repository estimates camera poses itself.
+9. Required image overlap.
+10. Recommended capture strategy.
+11. Supported image resolutions.
+12. GPU requirements.
+13. VRAM requirements.
+14. Average processing time.
+15. Output format.
+16. Output size.
+17. Whether output can be rendered on mobile.
+18. Whether conversion or optimization is required.
+19. Whether the repository exposes a CLI.
+20. Whether the repository can run as a worker service.
+21. License restrictions.
+22. Major technical risks.
+23. Missing capabilities.
+24. Required supporting technologies.
+
+Do not proceed with reconstruction integration until this analysis exists.
+
+---
+
+# 2. PRODUCT VISION
+
+Build a mobile application that lets a normal user digitize their home.
+
+The primary user journey is:
+
+Create Account
+→ Create Property
+→ Add Room
+→ Select Room Type
+→ Receive Capture Instructions
+→ Scan Room
+→ See Required Photo Count
+→ Receive Real-Time Capture Guidance
+→ Capture Images
+→ Validate Every Image
+→ Detect Missing Coverage
+→ Complete Capture
+→ Upload Images
+→ Create Reconstruction Job
+→ Process Images
+→ Generate 3D Representation
+→ Optimize 3D Representation for Mobile
+→ Download or Stream Scene
+→ Enter 3D Room
+→ Walk Around Using On-Screen Joysticks.
+
+The application should eventually support an entire home composed of multiple reconstructed rooms.
+
+Examples:
+
+Living Room
+
+Bedroom
+
+Kitchen
+
+Bathroom
+
+Dining Room
+
+Hallway
+
+Balcony
+
+Office
+
+Other
+
+Each room must be independently capturable, processable, downloadable, viewable, deletable, and regeneratable.
+
+The architecture must allow rooms to later be spatially connected into a complete home.
+
+---
+
+# 3. DEVELOPMENT PRINCIPLES
+
+Follow these rules throughout implementation.
+
+1. Inspect the existing codebase before changing anything.
+
+2. Never blindly overwrite working architecture.
+
+3. Document major architectural decisions.
+
+4. Build vertically integrated features instead of generating hundreds of disconnected files.
+
+5. After every phase:
+
+* compile
+* run linting
+* run tests
+* fix errors
+* execute the application
+* verify the feature manually
+* update documentation
+* commit logically separated changes if Git is available
+
+6. Never hide errors using empty catch blocks.
+
+7. Never disable TypeScript strict mode to solve errors.
+
+8. Never replace real functionality with mock data unless the current phase explicitly requires a mock interface boundary.
+
+9. Keep reconstruction technology behind an abstraction layer.
+
+10. Do not couple the mobile application directly to Image Blaster.
+
+11. Never execute heavy reconstruction workloads on the mobile device unless repository analysis proves that on-device execution is technically viable.
+
+12. Store original images separately from reconstruction artifacts.
+
+13. Treat reconstruction jobs as asynchronous, resumable jobs.
+
+14. Make every upload resumable.
+
+15. Make every reconstruction job retryable.
+
+16. All long-running operations require progress reporting.
+
+17. The app must survive termination, network loss, upload interruption, backend restart, and reconstruction worker failure.
+
+---
+
+# 4. FIRST ACTION: CODEBASE AND ENVIRONMENT AUDIT
+
+Before implementation, inspect the workspace.
+
+Determine whether a project already exists.
+
+If an existing project exists, inspect:
+
+* project structure
+* frameworks
+* package managers
+* mobile platforms
+* backend services
+* environment variables
+* Docker files
+* CI/CD
+* database configuration
+* storage configuration
+* authentication
+* API clients
+* existing tests
+
+Create:
+
+docs/codebase-audit.md
+
+Explain:
+
+* current architecture
+* reusable components
+* technical debt
+* missing infrastructure
+* proposed changes
+* migration strategy
+
+If no project exists, initialize the project according to the architecture defined below.
+
+---
+
+# 5. RECOMMENDED SYSTEM ARCHITECTURE
+
+Use the following default architecture unless repository analysis proves that a different architecture is necessary.
+
+MOBILE APPLICATION
+
+Preferred:
+
+React Native with Expo Development Builds and TypeScript.
+
+Use Expo only if required native camera, AR, sensor, graphics, and rendering capabilities can be integrated correctly.
+
+If Expo becomes a technical limitation, migrate to React Native bare workflow.
+
+Do not force Expo compatibility at the expense of required functionality.
+
+Alternative:
+
+Flutter.
+
+Use Flutter only if the existing repository or codebase already uses Flutter.
+
+MOBILE RESPONSIBILITIES:
+
+* authentication
+* property management
+* room management
+* capture instructions
+* guided camera capture
+* sensor collection
+* photo validation
+* local capture persistence
+* resumable uploads
+* reconstruction status
+* push notifications
+* 3D scene download
+* scene caching
+* scene rendering
+* first-person navigation
+* settings
+* diagnostics
+
+BACKEND API
+
+Preferred:
+
+Python + FastAPI.
+
+Responsibilities:
+
+* authentication integration
+* property APIs
+* room APIs
+* capture session APIs
+* signed upload URLs
+* upload completion tracking
+* reconstruction job creation
+* job state management
+* reconstruction orchestration
+* artifact management
+* scene manifest generation
+* mobile client APIs
+
+DATABASE
+
+PostgreSQL.
+
+OBJECT STORAGE
+
+Use an S3-compatible abstraction.
+
+Development:
+
+MinIO.
+
+Production:
+
+AWS S3, Cloudflare R2, Backblaze B2, or another compatible provider.
+
+QUEUE
+
+Redis + Celery.
+
+If repository execution requires more advanced GPU scheduling, create an abstraction allowing later migration to:
+
+* Kubernetes Jobs
+* Modal
+* RunPod
+* AWS Batch
+* Ray
+* custom GPU workers
+
+RECONSTRUCTION WORKER
+
+Python service.
+
+Responsibilities:
+
+* download original images
+* validate job
+* preprocess images
+* execute reconstruction pipeline
+* capture stdout and stderr
+* report progress
+* save intermediate artifacts
+* postprocess output
+* optimize output
+* generate thumbnails and previews
+* generate scene manifest
+* upload artifacts
+* clean temporary files
+* report final status
+
+---
+
+# 6. MONOREPO STRUCTURE
+
+Use a clean monorepo.
+
+Example:
+
+apps/
+mobile/
+api/
+worker/
+
+packages/
+api-client/
+shared-types/
+scene-schema/
+validation/
+config/
+
+infrastructure/
+docker/
+scripts/
+deployment/
+
+docs/
+architecture/
+adr/
+api/
+reconstruction/
+
+tests/
+integration/
+e2e/
+
+Create a better structure if the existing project requires it.
+
+Document the final structure.
+
+---
+
+# 7. MOBILE APPLICATION SCREENS
+
+Build the following screens.
+
+## Authentication
+
+Splash Screen
+
+Onboarding
+
+Sign Up
+
+Login
+
+Forgot Password
+
+Permissions Setup
+
+## Home
+
+Property Dashboard
+
+Recent Projects
+
+Processing Rooms
+
+Completed Rooms
+
+Failed Reconstructions
+
+Storage Usage
+
+## Property
+
+Create Property
+
+Property Details
+
+Room List
+
+Add Room
+
+Property Settings
+
+Delete Property
+
+## Room
+
+Room Details
+
+Capture Status
+
+Photo Count
+
+Capture Quality Score
+
+Coverage Estimate
+
+Reconstruction Status
+
+3D Preview
+
+Regenerate Room
+
+Delete Room
+
+## Capture Experience
+
+Capture Preparation Screen
+
+Capture Tutorial
+
+Capture Checklist
+
+Guided Camera Screen
+
+Capture Progress Screen
+
+Photo Review Screen
+
+Missing Coverage Screen
+
+Capture Completion Screen
+
+Upload Screen
+
+## Processing
+
+Upload Progress
+
+Queue Status
+
+Reconstruction Progress
+
+Optimization Progress
+
+Scene Ready
+
+Failure Screen
+
+Retry Screen
+
+## 3D Viewer
+
+Scene Loading
+
+Scene Viewer
+
+First-Person Navigation
+
+Settings Panel
+
+Quality Settings
+
+Reset Position
+
+Fullscreen Mode
+
+Screenshot Mode
+
+Diagnostics
+
+---
+
+# 8. GUIDED ROOM CAPTURE SYSTEM
+
+This is one of the most important parts of the product.
+
+Do not create a normal camera interface.
+
+Create a guided room digitization workflow.
+
+The system must tell the user:
+
+* how many photos are recommended
+* how many photos have been accepted
+* how many were rejected
+* which directions have insufficient coverage
+* whether the user is moving too quickly
+* whether images are blurry
+* whether images are too dark
+* whether images are overexposed
+* whether the new image is too similar to previous images
+* whether sufficient overlap exists
+* whether the camera angle changed too much
+* whether more images are required
+
+The photo target must not be a meaningless fixed number.
+
+Create:
+
+CapturePlanGenerator
+
+Inputs:
+
+* room type
+* approximate room dimensions
+* capture mode
+* device capabilities
+* reconstruction repository requirements
+
+Outputs:
+
+* minimum photo count
+* recommended photo count
+* required overlap
+* capture path
+* required viewing directions
+* quality thresholds
+
+Initially support:
+
+Small Room
+
+Medium Room
+
+Large Room
+
+Custom Room
+
+Example estimated targets may be used only as configurable defaults:
+
+Small Room:
+20 to 35 photos
+
+Medium Room:
+35 to 60 photos
+
+Large Room:
+60 to 100 photos
+
+These numbers must be configurable and replaced with repository-specific recommendations after repository analysis.
+
+---
+
+# 9. CAPTURE STRATEGY
+
+Design a capture strategy optimized for reconstruction quality.
+
+Default strategy:
+
+PASS 1: HORIZONTAL COVERAGE
+
+Walk around the perimeter.
+
+Capture walls and room center.
+
+Maintain sufficient overlap.
+
+PASS 2: LOWER COVERAGE
+
+Capture furniture bases, floor transitions, and lower geometry.
+
+PASS 3: UPPER COVERAGE
+
+Capture upper walls, cabinets, ceiling transitions, and tall objects.
+
+PASS 4: DETAIL COVERAGE
+
+Capture regions identified as low-confidence.
+
+The UI must display the current capture stage.
+
+Example:
+
+Stage 1 of 4
+
+Horizontal Coverage
+
+12 / 25 recommended images accepted.
+
+The system must provide visual directional guidance.
+
+---
+
+# 10. SENSOR AND CAMERA METADATA
+
+Where platform APIs allow it, collect:
+
+* timestamp
+* camera model
+* focal length
+* image dimensions
+* orientation
+* gyroscope data
+* accelerometer data
+* device pose
+* AR camera transform
+* estimated camera intrinsics
+* GPS only when explicitly required and permission is granted
+* exposure information
+* ISO
+* shutter speed
+
+Store metadata per captured image.
+
+Do not require GPS for indoor reconstruction.
+
+Create a CaptureFrame metadata model.
+
+---
+
+# 11. CAPTURE QUALITY VALIDATION
+
+Implement a modular CaptureQualityEngine.
+
+Every image should be evaluated.
+
+Checks:
+
+BLUR DETECTION
+
+Use variance of Laplacian or another appropriate metric.
+
+EXPOSURE VALIDATION
+
+Detect:
+
+* underexposure
+* overexposure
+* clipped highlights
+* crushed shadows
+
+DUPLICATE DETECTION
+
+Use:
+
+* perceptual hash
+* feature similarity
+* embedding similarity if necessary
+
+MOTION VALIDATION
+
+Use device sensor data when available.
+
+OVERLAP ESTIMATION
+
+Use feature matching or another appropriate method.
+
+ANGLE CHANGE VALIDATION
+
+Detect insufficient camera movement and excessive jumps.
+
+IMAGE RESOLUTION VALIDATION
+
+Ensure repository requirements are satisfied.
+
+QUALITY SCORE
+
+Generate normalized score:
+
+0 to 100.
+
+Store rejection reasons.
+
+Example:
+
+{
+"accepted": false,
+"qualityScore": 42,
+"reasons": [
+"IMAGE_TOO_BLURRY",
+"INSUFFICIENT_CAMERA_MOVEMENT"
+]
+}
+
+Allow threshold configuration.
+
+---
+
+# 12. CAPTURE COVERAGE SYSTEM
+
+Implement a coverage model.
+
+The first version may use directional coverage bins.
+
+Example:
+
+horizontal angle bins
+
+vertical angle bins
+
+capture position clusters
+
+observed room sectors
+
+Display a spherical or radar-style capture map.
+
+Covered regions:
+
+complete.
+
+Partially covered regions:
+
+incomplete.
+
+Missing regions:
+
+required.
+
+Do not falsely claim that this represents geometric completeness.
+
+Name the feature accurately:
+
+Capture Coverage Estimate.
+
+Design the architecture so it can later be replaced by:
+
+* SLAM coverage
+* ARKit scene understanding
+* ARCore scene understanding
+* sparse point-cloud coverage
+* camera frustum analysis
+
+---
+
+# 13. PHOTO MANAGEMENT
+
+Users must be able to:
+
+* inspect accepted photos
+* inspect rejected photos
+* see rejection reason
+* retake photos
+* delete photos
+* replace photos
+* continue capture later
+* resume interrupted capture session
+
+Store capture sessions locally.
+
+Use a persistent state machine.
+
+Capture session states:
+
+CREATED
+
+PREPARING
+
+CAPTURING
+
+PAUSED
+
+REVIEWING
+
+READY_FOR_UPLOAD
+
+UPLOADING
+
+UPLOADED
+
+SUBMITTED
+
+---
+
+# 14. UPLOAD ARCHITECTURE
+
+Never upload images through the API server as normal multipart requests for production-scale operation.
+
+Implement direct object-storage uploads.
+
+Flow:
+
+Mobile
+→ Request Upload Session
+→ Backend Creates Signed Upload URLs
+→ Mobile Uploads Images
+→ Mobile Reports Completed Parts
+→ Backend Verifies Objects
+→ Mobile Finalizes Capture Session
+→ Backend Creates Reconstruction Job.
+
+Support:
+
+* resumable upload
+* multipart upload
+* retry
+* exponential backoff
+* network interruption
+* application restart
+* upload checksums
+* upload concurrency limits
+* cancellation
+
+Show:
+
+uploaded files
+
+total files
+
+uploaded bytes
+
+total bytes
+
+estimated progress
+
+---
+
+# 15. DATABASE MODEL
+
+Design normalized database models.
+
+Minimum entities:
+
+User
+
+Property
+
+Room
+
+CaptureSession
+
+CaptureFrame
+
+Upload
+
+ReconstructionJob
+
+ReconstructionAttempt
+
+ReconstructionArtifact
+
+SceneManifest
+
+Device
+
+Notification
+
+Suggested relationships:
+
+User
+1:N Property
+
+Property
+1:N Room
+
+Room
+1:N CaptureSession
+
+CaptureSession
+1:N CaptureFrame
+
+CaptureSession
+1:N ReconstructionJob
+
+ReconstructionJob
+1:N ReconstructionAttempt
+
+ReconstructionJob
+1:N ReconstructionArtifact
+
+Room
+1:N SceneManifest
+
+Use:
+
+UUIDs
+
+timestamps
+
+soft deletion where appropriate
+
+optimistic locking where appropriate
+
+database migrations
+
+indexes
+
+foreign keys
+
+constraints
+
+idempotency keys
+
+---
+
+# 16. RECONSTRUCTION JOB STATE MACHINE
+
+Implement an explicit state machine.
+
+States:
+
+CREATED
+
+VALIDATING_INPUT
+
+QUEUED
+
+WAITING_FOR_WORKER
+
+DOWNLOADING_IMAGES
+
+PREPROCESSING
+
+ESTIMATING_CAMERA_POSES
+
+RECONSTRUCTING
+
+POSTPROCESSING
+
+OPTIMIZING
+
+GENERATING_PREVIEW
+
+UPLOADING_ARTIFACTS
+
+READY
+
+FAILED
+
+CANCELLED
+
+Some stages may not apply depending on repository capabilities.
+
+Do not report stages that do not actually execute.
+
+Store:
+
+current state
+
+progress percentage
+
+current message
+
+created timestamp
+
+started timestamp
+
+completed timestamp
+
+failed timestamp
+
+retry count
+
+worker identifier
+
+error category
+
+sanitized error message
+
+internal error details
+
+---
+
+# 17. RECONSTRUCTION ADAPTER
+
+Create an abstraction.
+
+Example:
+
+ReconstructionEngine
+
+Methods:
+
+validate_environment()
+
+validate_inputs()
+
+prepare_inputs()
+
+run_preprocessing()
+
+run_reconstruction()
+
+collect_outputs()
+
+postprocess_outputs()
+
+generate_mobile_artifacts()
+
+generate_preview()
+
+cleanup()
+
+Implement:
+
+ImageBlasterReconstructionEngine
+
+The rest of the application must depend on ReconstructionEngine, not directly on repository scripts.
+
+This allows future engines:
+
+COLMAPEngine
+
+NerfstudioEngine
+
+GaussianSplattingEngine
+
+PhotogrammetryEngine
+
+CommercialAPIEngine
+
+Do not implement unused engines.
+
+Create only the abstraction and Image Blaster implementation.
+
+---
+
+# 18. IMAGE BLASTER EXECUTION
+
+After repository analysis, create the correct integration.
+
+Possible integration methods:
+
+CLI subprocess
+
+Python module
+
+Docker container
+
+isolated Conda environment
+
+dedicated worker image
+
+external GPU worker
+
+Choose based on repository requirements.
+
+Capture:
+
+stdout
+
+stderr
+
+exit code
+
+execution duration
+
+GPU usage when available
+
+peak VRAM when available
+
+generated files
+
+checkpoint files
+
+Do not parse arbitrary console logs for progress if the repository exposes structured progress information.
+
+If structured progress does not exist, create the safest possible progress adapter and document its limitations.
+
+---
+
+# 19. RECONSTRUCTION WORKSPACE
+
+Every job must use an isolated directory.
+
+Example:
+
+/workspace/jobs/{job_id}/
+
+input/
+
+preprocessed/
+
+working/
+
+checkpoints/
+
+output/
+
+optimized/
+
+preview/
+
+logs/
+
+manifest/
+
+Never allow two jobs to share mutable working directories.
+
+Implement cleanup policies.
+
+Do not delete failed job artifacts immediately.
+
+Retain diagnostic logs according to configuration.
+
+---
+
+# 20. MOBILE 3D OUTPUT STRATEGY
+
+Determine actual output from Image Blaster.
+
+Then design the rendering strategy.
+
+Possible outputs:
+
+POINT CLOUD
+
+Use appropriate mobile point-cloud renderer.
+
+MESH
+
+Convert to mobile-friendly formats.
+
+Preferred:
+
+glTF
+
+GLB
+
+Apply:
+
+mesh simplification
+
+texture compression
+
+LOD generation
+
+Draco compression if supported
+
+Meshopt if supported
+
+KTX2 or Basis Universal texture compression
+
+GAUSSIAN SPLATS
+
+Use a renderer that demonstrably supports the generated splat format on iOS and Android.
+
+Implement:
+
+LOD strategy
+
+streaming
+
+memory limits
+
+splat count limits
+
+quality presets
+
+NERF
+
+Do not assume direct real-time mobile rendering.
+
+Evaluate:
+
+baking
+
+mesh extraction
+
+Gaussian conversion
+
+server-side rendering
+
+streamed rendering
+
+If no technically valid mobile rendering path exists, document the limitation and implement the closest truthful architecture.
+
+---
+
+# 21. SCENE MANIFEST
+
+Create a versioned scene manifest.
+
+Example:
+
+{
+"schemaVersion": 1,
+"sceneId": "...",
+"roomId": "...",
+"engine": "image-blaster",
+"representation": "gaussian-splat",
+"coordinateSystem": "...",
+"units": "meters",
+"artifacts": [],
+"lods": [],
+"preview": {},
+"recommendedViewerSettings": {},
+"bounds": {},
+"spawnPoints": [],
+"generatedAt": "..."
+}
+
+Create shared schema validation.
+
+The mobile application must validate manifests before loading scenes.
+
+---
+
+# 22. MOBILE 3D VIEWER
+
+Build a real mobile viewer compatible with the generated scene format.
+
+Required functionality:
+
+* scene loading
+* progress indicator
+* local caching
+* memory budget management
+* camera initialization
+* spawn point
+* first-person movement
+* camera rotation
+* collision handling where geometry permits
+* gravity where appropriate
+* reset position
+* loading failure handling
+* quality settings
+* FPS diagnostics
+* memory diagnostics
+
+Target:
+
+30 FPS minimum on supported mid-range devices.
+
+Aim for 60 FPS on modern flagship devices.
+
+Do not sacrifice stability for visual quality.
+
+---
+
+# 23. MOBILE CONTROL SYSTEM
+
+Implement dual virtual joysticks.
+
+LEFT JOYSTICK:
+
+forward
+
+backward
+
+strafe left
+
+strafe right
+
+RIGHT JOYSTICK:
+
+look left
+
+look right
+
+look up
+
+look down
+
+Additional controls:
+
+sprint button
+
+reset position
+
+viewer settings
+
+fullscreen
+
+optional jump only if the navigation model supports it
+
+Controls must support:
+
+dead zones
+
+sensitivity
+
+acceleration
+
+deceleration
+
+touch cancellation
+
+multi-touch
+
+safe areas
+
+different screen sizes
+
+left-handed mode
+
+configurable sensitivity
+
+Do not make movement frame-rate dependent.
+
+Use delta time.
+
+---
+
+# 24. COLLISION AND NAVIGATION
+
+If the generated scene contains usable geometry:
+
+implement:
+
+player capsule
+
+collision detection
+
+floor detection
+
+gravity
+
+step height
+
+wall blocking
+
+spawn validation
+
+out-of-bounds recovery
+
+If the output is only radiance-field or Gaussian data without collision geometry:
+
+generate or estimate proxy collision geometry where technically possible.
+
+Otherwise provide free-fly navigation and clearly label it.
+
+Do not pretend collision exists when no collision representation is available.
+
+---
+---
+
+# 25. API DESIGN
+
+Use REST unless existing architecture requires GraphQL.
+
+Create versioned APIs.
+
+Example:
+
+/api/v1/properties
+
+/api/v1/properties/{propertyId}
+
+/api/v1/rooms
+
+/api/v1/rooms/{roomId}
+
+/api/v1/capture-sessions
+
+/api/v1/capture-sessions/{captureSessionId}
+
+/api/v1/capture-sessions/{captureSessionId}/frames
+
+/api/v1/capture-sessions/{captureSessionId}/upload-session
+
+/api/v1/capture-sessions/{captureSessionId}/finalize
+
+/api/v1/reconstruction-jobs
+
+/api/v1/reconstruction-jobs/{jobId}
+
+/api/v1/reconstruction-jobs/{jobId}/retry
+
+/api/v1/reconstruction-jobs/{jobId}/cancel
+
+/api/v1/scenes/{sceneId}/manifest
+
+Generate OpenAPI documentation.
+
+Generate a typed mobile API client.
+
+---
+
+# 27. REAL-TIME STATUS
+
+Implement reconstruction status updates.
+
+Preferred:
+
+WebSockets or Server-Sent Events.
+
+Fallback:
+
+polling with exponential backoff.
+
+The mobile application must survive disconnection and resume status updates.
+
+Do not require the user to keep the app open during reconstruction.
+
+Support push notification when reconstruction completes or fails.
+
+---
+
+# 28. SECURITY
+
+Implement:
+
+input validation
+
+file type validation
+
+file size limits
+
+image decoding validation
+
+authorization checks
+
+signed URLs
+
+short signed-URL expiration
+
+rate limiting
+
+request size limits
+
+job quotas
+
+storage quotas
+
+sanitized logs
+
+secret management
+
+environment validation
+
+dependency scanning
+
+Do not expose:
+
+storage credentials
+
+GPU worker credentials
+
+internal filesystem paths
+
+raw stack traces
+
+private bucket URLs
+
+---
+
+# 29. OBSERVABILITY
+
+Implement structured logging.
+
+Every request and job should have:
+
+request ID
+
+job ID
+
+user ID where appropriate
+
+worker ID
+
+duration
+
+status
+
+error category
+
+Add metrics:
+
+API latency
+
+upload failure rate
+
+queue depth
+
+job duration
+
+reconstruction success rate
+
+GPU utilization
+
+peak VRAM
+
+artifact size
+
+mobile scene load time
+
+viewer FPS
+
+viewer memory usage
+
+Prepare interfaces for:
+
+Sentry
+
+OpenTelemetry
+
+Prometheus
+
+Grafana
+
+Do not require every external service for local development.
+
+---
+
+# 30. LOCAL DEVELOPMENT ENVIRONMENT
+
+Create Docker Compose configuration.
+
+Services:
+
+PostgreSQL
+
+Redis
+
+MinIO
+
+API
+
+Worker
+
+Optional reconstruction worker profile
+
+Provide commands for:
+
+installation
+
+environment setup
+
+database migration
+
+starting infrastructure
+
+starting API
+
+starting worker
+
+starting mobile application
+
+executing tests
+
+running reconstruction smoke test
+
+cleaning local resources
+
+Create:
+
+.env.example
+
+Never commit secrets.
+
+---
+
+# 31. TESTING STRATEGY
+
+Implement tests.
+
+MOBILE:
+
+unit tests
+
+component tests
+
+capture state-machine tests
+
+upload resume tests
+
+API client tests
+
+scene-manifest validation tests
+
+viewer state tests
+
+BACKEND:
+
+unit tests
+
+API integration tests
+
+database tests
+
+authorization tests
+
+upload-session tests
+
+job state-machine tests
+
+retry tests
+
+idempotency tests
+
+WORKER:
+
+input validation tests
+
+adapter tests
+
+subprocess failure tests
+
+timeout tests
+
+artifact collection tests
+
+cleanup tests
+
+progress reporting tests
+
+END-TO-END:
+
+Create Property
+
+Create Room
+
+Start Capture Session
+
+Register Captured Frames
+
+Upload Images
+
+Finalize Session
+
+Create Reconstruction Job
+
+Execute Test Reconstruction
+
+Generate Scene Manifest
+
+Retrieve Scene
+
+Load Viewer
+
+Do not claim end-to-end reconstruction tests pass unless real repository inference was executed.
+
+---
+
+# 32. FAILURE HANDLING
+
+Explicitly handle:
+
+camera permission denied
+
+storage permission denied
+
+sensor unavailable
+
+blurry images
+
+insufficient overlap
+
+insufficient photos
+
+duplicate photos
+
+app terminated during capture
+
+network loss
+
+upload interruption
+
+expired signed URL
+
+corrupted upload
+
+backend restart
+
+Redis failure
+
+worker crash
+
+GPU out-of-memory
+
+repository process timeout
+
+camera pose estimation failure
+
+reconstruction failure
+
+missing output artifacts
+
+artifact upload failure
+
+scene manifest corruption
+
+scene download interruption
+
+unsupported device
+
+mobile out-of-memory
+
+viewer crash
+
+For each failure:
+
+define detection
+
+user-facing message
+
+retry behavior
+
+logging behavior
+
+recovery strategy
+
+---
+
+# 33. UI AND PRODUCT DESIGN
+
+The application should feel like a modern spatial-computing product.
+
+Do not build a generic CRUD application.
+
+Visual direction:
+
+dark neutral interface
+
+large camera viewport
+
+minimal controls during capture
+
+high-contrast capture guidance
+
+smooth progress animations
+
+clear reconstruction stages
+
+high-quality room thumbnails
+
+full-screen immersive viewer
+
+subtle depth effects
+
+responsive haptics
+
+clean typography
+
+Avoid excessive gradients.
+
+Avoid glassmorphism everywhere.
+
+Avoid meaningless dashboards.
+
+Avoid fake AI indicators.
+
+The capture screen must prioritize:
+
+camera
+
+coverage
+
+quality
+
+direction
+
+progress
+
+The viewer must prioritize:
+
+scene
+
+movement
+
+camera control
+
+performance
+
+---
+
+# 34. ACCESSIBILITY
+
+Support:
+
+screen readers
+
+dynamic text where possible
+
+high-contrast UI
+
+reduced-motion mode
+
+large touch targets
+
+haptic alternatives
+
+left-handed controls
+
+captions for visual capture instructions
+
+Do not rely only on color for quality warnings.
+
+---
+
+# 35. PERFORMANCE BUDGETS
+
+Define explicit budgets.
+
+MOBILE APPLICATION:
+
+cold-start target
+
+camera-screen launch target
+
+capture-validation latency
+
+memory budget
+
+scene-loading time
+
+viewer FPS
+
+maximum cached scene size
+
+BACKEND:
+
+API latency targets
+
+upload-session creation latency
+
+status-query latency
+
+WORKER:
+
+maximum job duration
+
+disk usage limits
+
+GPU memory limits
+
+timeout policies
+
+Document measured results.
+
+---
+
+# 36. IMPLEMENTATION PHASES
+
+Execute development in phases.
+
+PHASE 0
+
+Repository Analysis.
+
+Deliverables:
+
+reconstruction repository analysis
+
+codebase audit
+
+architecture decision record
+
+technical risk register
+
+PHASE 1
+
+Project Foundation.
+
+Deliverables:
+
+monorepo
+
+mobile app
+
+API
+
+database
+
+Redis
+
+object storage
+
+Docker Compose
+
+environment validation
+
+CI
+
+PHASE 2
+
+Authentication and Property Management.
+
+Deliverables:
+
+authentication
+
+property CRUD
+
+room CRUD
+
+mobile screens
+
+API integration
+
+PHASE 3
+
+Capture System.
+
+Deliverables:
+
+camera
+
+capture sessions
+
+photo counter
+
+capture plan
+
+metadata
+
+quality validation
+
+capture persistence
+
+photo review
+
+PHASE 4
+
+Coverage Guidance.
+
+Deliverables:
+
+coverage estimate
+
+directional guidance
+
+missing coverage detection
+
+capture completion rules
+
+PHASE 5
+
+Upload Pipeline.
+
+Deliverables:
+
+signed uploads
+
+resumable uploads
+
+checksums
+
+upload persistence
+
+finalization
+
+PHASE 6
+
+Job Infrastructure.
+
+Deliverables:
+
+job state machine
+
+Celery
+
+Redis
+
+worker service
+
+retry
+
+cancellation
+
+status API
+
+real-time updates
+
+PHASE 7
+
+Image Blaster Integration.
+
+Deliverables:
+
+adapter
+
+environment validation
+
+real inference execution
+
+artifact collection
+
+logs
+
+failure handling
+
+integration tests
+
+PHASE 8
+
+3D Optimization Pipeline.
+
+Deliverables:
+
+output analysis
+
+mobile conversion
+
+LOD
+
+compression
+
+preview generation
+
+scene manifest
+
+PHASE 9
+
+Mobile 3D Viewer.
+
+Deliverables:
+
+renderer
+
+scene loading
+
+cache
+
+dual joysticks
+
+movement
+
+camera controls
+
+collision or free-fly mode
+
+quality settings
+
+diagnostics
+
+PHASE 10
+
+Notifications and Background Behavior.
+
+Deliverables:
+
+push notifications
+
+background upload support
+
+status recovery
+
+deep links
+
+PHASE 11
+
+Testing and Hardening.
+
+Deliverables:
+
+integration tests
+
+E2E tests
+
+security audit
+
+performance profiling
+
+memory profiling
+
+failure injection
+
+PHASE 12
+
+Deployment.
+
+Deliverables:
+
+production Docker images
+
+database deployment
+
+storage configuration
+
+API deployment
+
+GPU worker deployment
+
+monitoring
+
+backup strategy
+
+runbooks
+
+---
+
+# 37. EXECUTION RULES FOR THE AI IDE
+
+You are not merely producing recommendations.
+
+You must implement the system.
+
+For every phase:
+
+1. Inspect relevant existing code.
+
+2. Explain the implementation plan.
+
+3. List files that will be created or modified.
+
+4. Implement one coherent vertical slice at a time.
+
+5. Run dependency installation.
+
+6. Run builds.
+
+7. Run type checking.
+
+8. Run linting.
+
+9. Run tests.
+
+10. Start required services.
+
+11. Execute smoke tests.
+
+12. Inspect failures.
+
+13. Fix failures.
+
+14. Repeat until the phase passes.
+
+15. Update documentation.
+
+16. Summarize what actually works.
+
+17. State what remains unverified.
+
+Do not dump thousands of lines of code without executing them.
+
+Do not move to later phases while the current foundation is broken.
+
+Do not repeatedly ask the user for permission to continue.
+
+Proceed autonomously unless:
+
+* credentials are required
+* a destructive operation requires confirmation
+* repository access is unavailable
+* a product decision fundamentally changes architecture
+* required hardware is unavailable
+
+When blocked, document:
+
+BLOCKER
+
+CAUSE
+
+ATTEMPTED SOLUTIONS
+
+EXACT USER ACTION REQUIRED
+
+NEXT STEP AFTER RESOLUTION
+
+---
+
+# 38. FIRST EXECUTION INSTRUCTION
+
+Start now.
+
+Do not begin by generating the entire application.
+
+Perform the following actions in order:
+
+1. Inspect the complete workspace.
+
+2. Locate the Image Blaster repository or clone it from the provided URL.
+
+3. Read its README and documentation.
+
+4. Inspect dependency files.
+
+5. Identify model checkpoints.
+
+6. Identify inference entry points.
+
+7. Identify input image requirements.
+
+8. Identify camera-pose requirements.
+
+9. Identify actual output formats.
+
+10. Identify GPU and VRAM requirements.
+
+11. Identify the repository license.
+
+12. Attempt the smallest documented example or inference pipeline if the environment supports it.
+
+13. Record all failures and missing dependencies.
+
+14. Create docs/reconstruction-repository-analysis.md.
+
+15. Create docs/codebase-audit.md.
+
+16. Create docs/architecture/initial-system-architecture.md.
+
+17. Create docs/technical-risk-register.md.
+
+18. Propose the final technology stack based on evidence.
+
+19. Create the initial implementation plan.
+
+20. Begin Phase 1 only after the repository analysis and architecture documents exist.
+
+The final product must be a real mobile 3D reconstruction system, not a UI demonstration pretending that reconstruction works.

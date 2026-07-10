@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "HOMIE",
+    "slug": "homie",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "com.homie.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "HOMIE needs camera access to capture your room photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "HOMIE needs photo library access to use existing photos."
+        }
+      ],
+      "expo-secure-store",
+      "expo-router",
+      "expo-status-bar"
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:8001"
+    }
+  }
+}
