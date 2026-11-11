@@ -41,8 +41,11 @@
       "expo-router",
       "expo-status-bar"
     ],
-    "extra": {
-      "apiUrl": "http://localhost:8001"
-    }
+    "ios": {
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true, "NSAllowsLocalNetworking": true }
+      }
+    },
+    "extra": {}
   }
 }

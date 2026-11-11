@@ -4,11 +4,11 @@ import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.database import Base
+from app.core.database import Base, pg_enum
 
 
 class JobStatus(StrEnum):
@@ -52,7 +52,7 @@ class ReconstructionJob(Base):
     )
     engine: Mapped[str] = mapped_column(String(50), default="image_blaster", nullable=False)
     status: Mapped[JobStatus] = mapped_column(
-        Enum(JobStatus, name="job_status_enum"), nullable=False, default=JobStatus.CREATED
+        pg_enum(JobStatus, "job_status_enum"), nullable=False, default=JobStatus.CREATED
     )
     progress: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     current_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -84,7 +84,7 @@ class ReconstructionArtifact(Base):
         UUID(as_uuid=True), ForeignKey("reconstruction_jobs.id", ondelete="CASCADE"), nullable=False, index=True
     )
     artifact_type: Mapped[ArtifactType] = mapped_column(
-        Enum(ArtifactType, name="artifact_type_enum"), nullable=False
+        pg_enum(ArtifactType, "artifact_type_enum"), nullable=False
     )
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
     content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)

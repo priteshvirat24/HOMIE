@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { roomsApi, reconstructionApi, sceneApi, type Room, type ReconstructionJob } from '../../../../services/api';
-import { Colors, Spacing, FontSize, Radius } from '../../../../constants/theme';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { roomsApi, reconstructionApi, sceneApi, type Room, type ReconstructionJob } from '../../../../../services/api';
+import { Colors, Spacing, FontSize, Radius } from '../../../../../constants/theme';
 
 const ROOM_TYPE_ICONS: Record<string, string> = {
   living_room: '🛋️', bedroom: '🛏️', kitchen: '🍳', bathroom: '🚿',
@@ -37,13 +37,13 @@ export default function RoomScreen() {
     }
   }, [propertyId, roomId]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>;
   }
 
-  const statusColor = { ready: Colors.success, failed: Colors.danger, processing: Colors.warning }[room?.status ?? ''] ?? Colors.textMuted;
+  const statusColor = ({ ready: Colors.success, failed: Colors.danger, processing: Colors.warning } as Record<string, string>)[room?.status ?? ''] ?? Colors.textMuted;
   const icon = ROOM_TYPE_ICONS[room?.room_type ?? ''] ?? '📦';
 
   return (
@@ -104,7 +104,10 @@ export default function RoomScreen() {
           {room?.status === 'processing' && (
             <TouchableOpacity
               style={styles.secondaryAction}
-              onPress={() => router.push(`/properties/${propertyId}/rooms/${roomId}/processing`)}
+              onPress={async () => {
+                const job = await reconstructionApi.latestForRoom(roomId!).catch(() => null);
+                if (job) router.push(`/properties/${propertyId}/rooms/${roomId}/processing?jobId=${job.id}`);
+              }}
             >
               <Text style={styles.secondaryActionIcon}>⚙️</Text>
               <View>

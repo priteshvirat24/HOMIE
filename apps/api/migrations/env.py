@@ -6,6 +6,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 # Import all models so they register with Base.metadata
+from app.core.config import get_settings
 from app.core.database import Base
 from app.models import (  # noqa: F401
     CaptureFrame,
@@ -19,7 +20,8 @@ from app.models import (  # noqa: F401
 )
 
 config = context.config
-# sqlalchemy.url is read directly from alembic.ini — no Settings override here.
+# Always use the same database the API uses (built from .env), not a hardcoded URL.
+config.set_main_option("sqlalchemy.url", get_settings().database_url_sync.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

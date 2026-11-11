@@ -4,11 +4,11 @@ import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.database import Base
+from app.core.database import Base, pg_enum
 
 
 class RoomType(StrEnum):
@@ -44,8 +44,8 @@ class Room(Base):
         UUID(as_uuid=True), ForeignKey("properties.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    room_type: Mapped[RoomType] = mapped_column(Enum(RoomType, name="room_type_enum"), nullable=False, default=RoomType.OTHER)
-    status: Mapped[RoomStatus] = mapped_column(Enum(RoomStatus, name="room_status_enum"), nullable=False, default=RoomStatus.CREATED)
+    room_type: Mapped[RoomType] = mapped_column(pg_enum(RoomType, "room_type_enum"), nullable=False, default=RoomType.OTHER)
+    status: Mapped[RoomStatus] = mapped_column(pg_enum(RoomStatus, "room_status_enum"), nullable=False, default=RoomStatus.CREATED)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     thumbnail_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

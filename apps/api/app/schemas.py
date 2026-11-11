@@ -3,43 +3,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from typing import Any
 
-
-# ============================================================
-# Auth Schemas
-# ============================================================
-
-
-class UserRegister(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-    display_name: str | None = Field(None, max_length=100)
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-class TokenRefresh(BaseModel):
-    refresh_token: str
-
-
-class UserOut(BaseModel):
-    id: UUID
-    email: str
-    display_name: str | None
-    is_active: bool
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
+from pydantic import BaseModel, Field
 
 
 # ============================================================
@@ -146,6 +112,8 @@ class CaptureFrameOut(BaseModel):
     session_id: UUID
     storage_key: str | None
     original_filename: str | None
+    width: int | None = None
+    height: int | None = None
     quality_score: float | None
     is_accepted: bool | None
     rejection_reasons: list | None
@@ -153,20 +121,6 @@ class CaptureFrameOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
-
-class UploadUrlRequest(BaseModel):
-    frame_ids: list[UUID]
-
-
-class UploadUrl(BaseModel):
-    frame_id: UUID
-    upload_url: str
-    storage_key: str
-
-
-class UploadUrlResponse(BaseModel):
-    urls: list[UploadUrl]
 
 
 # ============================================================
@@ -227,6 +181,22 @@ class SceneManifestOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TourRoom(BaseModel):
+    """One room of a house walkthrough. `scene` is null until the room has a ready 3D scene."""
+
+    room_id: UUID
+    name: str
+    room_type: str
+    status: str
+    scene: dict[str, Any] | None = None
+
+
+class PropertyTour(BaseModel):
+    property_id: UUID
+    name: str
+    rooms: list[TourRoom]
 
 
 # ============================================================

@@ -2,6 +2,9 @@
 
 from collections.abc import AsyncGenerator
 
+from enum import Enum as PyEnum
+
+from sqlalchemy import Enum
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -22,6 +25,11 @@ async_session_factory = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
+
+def pg_enum(enum_cls: type[PyEnum], name: str) -> Enum:
+    """Postgres enum that stores the Python enum *values* (lowercase), not names."""
+    return Enum(enum_cls, name=name, values_callable=lambda e: [m.value for m in e])
 
 
 class Base(DeclarativeBase):

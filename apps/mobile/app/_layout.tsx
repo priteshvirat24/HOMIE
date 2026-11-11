@@ -16,7 +16,8 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="properties/index" options={{ title: 'My Properties', headerShown: false }} />
-        <Stack.Screen name="properties/[id]/index" options={{ title: 'Property' }} />
+        <Stack.Screen name="properties/[id]/index" options={{ title: 'Property', headerShown: false }} />
+        <Stack.Screen name="properties/[id]/tour" options={{ title: 'House walkthrough', headerShown: false }} />
         <Stack.Screen name="properties/[id]/rooms/[roomId]/index" options={{ title: 'Room' }} />
         <Stack.Screen name="properties/[id]/rooms/[roomId]/capture" options={{ title: 'Capture', headerShown: false }} />
         <Stack.Screen name="properties/[id]/rooms/[roomId]/processing" options={{ title: 'Processing', headerShown: false }} />

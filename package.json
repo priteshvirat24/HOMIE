@@ -2,13 +2,12 @@
   "name": "homie",
   "private": true,
   "workspaces": [
-    "apps/api",
-    "apps/viewer",
-    "packages/*"
+    "apps/viewer"
   ],
   "scripts": {
     "dev:viewer": "npm run dev --workspace=apps/viewer",
     "build:viewer": "npm run build --workspace=apps/viewer",
+    "typecheck:viewer": "npm run typecheck --workspace=apps/viewer",
     "test:viewer": "npm test --workspace=apps/viewer"
   },
   "engines": {

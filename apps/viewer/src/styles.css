@@ -1,0 +1,266 @@
+:root {
+  --bg: #0b0c0e;
+  --fg: #f4f4f5;
+  --muted: #a1a1aa;
+  --glass: rgba(18, 18, 22, 0.62);
+  --line: rgba(255, 255, 255, 0.14);
+  --accent: #f5a524;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--fg);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The 3D walkthrough owns every touch; the web app scrolls normally. */
+body.mode-walk,
+.tour {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tour {
+  position: fixed;
+  inset: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--fg);
+}
+
+.hud-actions {
+  display: flex;
+  gap: 8px;
+}
+
+canvas {
+  display: block;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.center p {
+  color: var(--muted);
+  max-width: 34ch;
+  line-height: 1.5;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(11, 12, 14, 0.88);
+  color: var(--muted);
+  z-index: 30;
+}
+
+.touch-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  touch-action: none;
+}
+
+.stick {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.knob {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.hud-top {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hud-top > * {
+  pointer-events: auto;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+}
+
+.title .house {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.title .room {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.chip {
+  min-width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.rooms {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.room-list {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.room-list::-webkit-scrollbar {
+  display: none;
+}
+
+.room-chip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.room-chip small {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.room-chip.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.room-chip.pending {
+  opacity: 0.45;
+}
+
+.help {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 10;
+}

@@ -4,11 +4,11 @@ import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.database import Base
+from app.core.database import Base, pg_enum
 
 
 class CaptureSessionStatus(StrEnum):
@@ -31,7 +31,7 @@ class CaptureSession(Base):
         UUID(as_uuid=True), ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[CaptureSessionStatus] = mapped_column(
-        Enum(CaptureSessionStatus, name="capture_session_status_enum"),
+        pg_enum(CaptureSessionStatus, "capture_session_status_enum"),
         nullable=False,
         default=CaptureSessionStatus.CREATED,
     )

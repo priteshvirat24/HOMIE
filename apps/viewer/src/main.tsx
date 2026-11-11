@@ -1,5 +1,24 @@
+import { lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { App } from './App'
+import { Dashboard } from './web/Dashboard'
+import './styles.css'
 
-const root = document.getElementById('root')!
-createRoot(root).render(<App />)
+const Walkthrough = lazy(() => import('./Walkthrough').then((m) => ({ default: m.Walkthrough })))
+
+/**
+ * /viewer/?property=…&room=…  or  ?room=…  or  ?scene=…  → bare walkthrough (what the phone's WebView opens)
+ * /viewer/                                               → the HOMIE web app
+ */
+const params = new URLSearchParams(window.location.search)
+const embedded = params.has('property') || params.has('room') || params.has('scene')
+document.body.classList.add(embedded ? 'mode-walk' : 'mode-web')
+
+createRoot(document.getElementById('root')!).render(
+  embedded ? (
+    <Suspense fallback={null}>
+      <Walkthrough request={{ propertyId: params.get('property'), roomId: params.get('room'), sceneUrl: params.get('scene') }} />
+    </Suspense>
+  ) : (
+    <Dashboard />
+  ),
+)

@@ -1,95 +1,67 @@
-"""HOMIE Worker — Reconstruction engine abstraction."""
+"""HOMIE Worker — reconstruction engine interface.
+
+An engine turns a room's photos into downloadable scene files. Engines are
+synchronous: the Celery task runs them in a worker process.
+"""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Protocol
+
+
+class EngineError(Exception):
+    """A failure that will not go away by retrying (bad input, bad key, generation failed)."""
+
+    category = "engine_error"
+
+    def __init__(self, message: str, category: str | None = None):
+        super().__init__(message)
+        if category:
+            self.category = category
+
+
+class TransientEngineError(Exception):
+    """A failure worth retrying (network error, provider 5xx, rate limit)."""
+
+
+class JobCancelled(Exception):
+    pass
+
+
+class JobContext(Protocol):
+    """What an engine can ask of the running job."""
+
+    def progress(self, fraction: float, message: str) -> None: ...
+
+    def check_cancelled(self) -> None:
+        """Raise JobCancelled if the user cancelled the job."""
+        ...
+
+    def get_state(self, key: str) -> Any: ...
+
+    def set_state(self, key: str, value: Any) -> None:
+        """Persist a small value on the job (survives Celery retries), e.g. a provider operation id."""
+        ...
 
 
 @dataclass
-class ValidationResult:
-    """Result of environment or input validation."""
-    is_valid: bool
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
+class SceneFiles:
+    """Downloaded scene files, keyed by artifact name (splat, splat_mobile, collider, panorama, thumbnail)."""
 
-
-@dataclass
-class PreparedInputs:
-    """Preprocessed inputs ready for reconstruction."""
-    job_id: str
-    image_path: Path
-    scene_description: dict | None = None
-    prompt: str | None = None
-    config: dict = field(default_factory=dict)
-
-
-@dataclass
-class ReconstructionOutput:
-    """Raw output from reconstruction engine."""
-    job_id: str
-    success: bool
-    artifacts: dict[str, Any] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
-    errors: list[str] = field(default_factory=list)
-
-
-@dataclass
-class MobileArtifacts:
-    """Optimized artifacts for mobile viewing."""
-    splat_path: Path | None = None
-    collider_mesh_path: Path | None = None
-    object_meshes: list[Path] = field(default_factory=list)
-    panorama_path: Path | None = None
-    thumbnail_path: Path | None = None
-    sfx_paths: list[Path] = field(default_factory=list)
-    manifest: dict = field(default_factory=dict)
-
-
-ProgressCallback = Callable[[float, str], None]
+    files: dict[str, Path] = field(default_factory=dict)
+    manifest: dict[str, Any] = field(default_factory=dict)
 
 
 class ReconstructionEngine(ABC):
-    """Abstract base class for 3D reconstruction engines.
-
-    All reconstruction engines must implement this interface.
-    This allows swapping between Image Blaster, COLMAP, Nerfstudio, etc.
-    """
-
     @property
     @abstractmethod
-    def engine_name(self) -> str:
-        """Unique identifier for this engine."""
-        ...
+    def engine_name(self) -> str: ...
 
     @abstractmethod
-    async def validate_environment(self) -> ValidationResult:
-        """Validate that all required services, API keys, and dependencies are available."""
-        ...
+    def validate_environment(self) -> None:
+        """Raise EngineError if API keys or dependencies are missing."""
 
     @abstractmethod
-    async def validate_inputs(self, images: list[Path]) -> ValidationResult:
-        """Validate that input images meet engine requirements."""
-        ...
-
-    @abstractmethod
-    async def prepare_inputs(self, job_id: str, images: list[Path], config: dict) -> PreparedInputs:
-        """Preprocess inputs (select best image, analyze scene, etc.)."""
-        ...
-
-    @abstractmethod
-    async def run_reconstruction(
-        self, inputs: PreparedInputs, progress_callback: ProgressCallback
-    ) -> ReconstructionOutput:
-        """Execute the reconstruction pipeline."""
-        ...
-
-    @abstractmethod
-    async def postprocess_outputs(self, output: ReconstructionOutput, workspace: Path) -> MobileArtifacts:
-        """Postprocess and optimize outputs for mobile delivery."""
-        ...
-
-    @abstractmethod
-    async def cleanup(self, job_id: str, workspace: Path) -> None:
-        """Clean up temporary files for a job."""
-        ...
+    def reconstruct(self, images: list[Path], workspace: Path, config: dict, ctx: JobContext) -> SceneFiles:
+        """Build a scene from local image files, writing outputs under `workspace`."""

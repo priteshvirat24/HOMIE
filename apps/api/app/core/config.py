@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         auth = self.postgres_user if not self.postgres_password else f"{self.postgres_user}:{self.postgres_password}"
-        return f"postgresql://{auth}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        return f"postgresql+psycopg2://{auth}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     @property
     def cors_origins(self) -> list[str]:

@@ -1,242 +1,159 @@
-"""HOMIE Worker — Celery task definitions for reconstruction."""
+"""HOMIE Worker — Celery task that turns a room's photos into a 3D scene."""
 
-import asyncio
 import logging
+import mimetypes
 import os
-import uuid
-import json
+import shutil
+from pathlib import Path
+from typing import Any
+
 import boto3
 from botocore.config import Config
-import psycopg2
-from pathlib import Path
+from celery.exceptions import SoftTimeLimitExceeded
 
+import db
 from celery_app import app
-from engines import get_engine
+from engines import EngineError, JobCancelled, TransientEngineError, get_engine
 
 logger = logging.getLogger(__name__)
 
 WORKSPACE_ROOT = Path(os.getenv("WORKER_WORKSPACE", "/tmp/homie-worker"))
+mimetypes.add_type("application/octet-stream", ".spz")
+mimetypes.add_type("model/gltf-binary", ".glb")
+mimetypes.add_type("image/webp", ".webp")
 
-def _get_s3_client():
+
+def _s3():
     return boto3.client(
         "s3",
         endpoint_url=os.getenv("S3_ENDPOINT", "http://localhost:9000"),
-        aws_access_key_id=os.getenv("S3_ACCESS_KEY", "homie_minio_user"),
-        aws_secret_access_key=os.getenv("S3_SECRET_KEY", "homie_minio_pass"),
+        aws_access_key_id=os.getenv("S3_ACCESS_KEY", "minioadmin"),
+        aws_secret_access_key=os.getenv("S3_SECRET_KEY", "minioadmin"),
         region_name=os.getenv("S3_REGION", "us-east-1"),
-        config=Config(signature_version="s3v4"),
+        config=Config(signature_version="s3v4", retries={"max_attempts": 5}),
     )
 
-def _get_db_conn():
-    return psycopg2.connect(os.getenv("DATABASE_URL", "postgresql://homie:homie@localhost:5432/homie"))
 
+class _Context:
+    """JobContext implementation backed by the jobs table."""
 
-def _ensure_workspace(job_id: str) -> Path:
-    """Create an isolated workspace for a job."""
-    workspace = WORKSPACE_ROOT / job_id
-    workspace.mkdir(parents=True, exist_ok=True)
-    (workspace / "input").mkdir(exist_ok=True)
-    (workspace / "output").mkdir(exist_ok=True)
-    (workspace / "logs").mkdir(exist_ok=True)
-    return workspace
+    def __init__(self, job_id: str, summary: dict[str, Any]):
+        self.job_id = job_id
+        self.summary = summary
+        self._last_progress = -1.0
 
-
-def _run_async(coro):
-    """Run an async function from a sync Celery task."""
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
-
-@app.task(bind=True, name="reconstruction.run", max_retries=3, default_retry_delay=60)
-def run_reconstruction(self, job_id: str, image_paths: list[str], engine_name: str = "image_blaster", config: dict | None = None):
-    """Main reconstruction task.
-
-    Args:
-        job_id: Unique job identifier
-        image_paths: List of S3 keys or local paths to input images
-        engine_name: Which reconstruction engine to use
-        config: Optional engine-specific configuration
-    """
-    config = config or {}
-    workspace = _ensure_workspace(job_id)
-    log_file = workspace / "logs" / "reconstruction.log"
-
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.DEBUG)
-    logger.addHandler(file_handler)
-
-    logger.info(f"Starting reconstruction job {job_id} with engine {engine_name}")
-
-    def progress_callback(progress: float, message: str):
-        """Report progress back via Celery task state and Database."""
-        self.update_state(
-            state="PROGRESS",
-            meta={"progress": progress, "message": message, "job_id": job_id},
+    def progress(self, fraction: float, message: str) -> None:
+        fraction = max(0.0, min(fraction, 0.99))
+        status = "generating_world" if 0.15 <= fraction < 0.82 else (
+            "uploading_artifacts" if fraction >= 0.9 else "downloading_images" if fraction < 0.15 else "postprocessing"
         )
-        logger.info(f"[{progress:.0%}] {message}")
-        try:
-            with _get_db_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE reconstruction_jobs SET progress = %s, current_message = %s, status = 'running' WHERE id = %s",
-                        (progress, message, job_id)
-                    )
-                conn.commit()
-        except Exception as e:
-            logger.warning(f"Could not update DB progress: {e}")
+        logger.info("[%s] %3.0f%% %s", self.job_id, fraction * 100, message)
+        db.update_progress(self.job_id, fraction, message, status)
+        self._last_progress = fraction
 
-    async def _async_progress(progress: float, message: str):
-        progress_callback(progress, message)
+    def check_cancelled(self) -> None:
+        job = db.get_job(self.job_id)
+        if job is None or job["status"] == "cancelled":
+            raise JobCancelled()
+
+    def get_state(self, key: str) -> Any:
+        return self.summary.get(key)
+
+    def set_state(self, key: str, value: Any) -> None:
+        self.summary[key] = value
+        db.set_summary_value(self.job_id, key, value)
+
+
+@app.task(
+    bind=True,
+    name="reconstruction.run",
+    max_retries=3,
+    acks_late=True,
+    soft_time_limit=45 * 60,
+    time_limit=50 * 60,
+)
+def run_reconstruction(self, job_id: str, image_keys: list[str], engine_name: str = "image_blaster", config=None):
+    """Download the room photos, generate a world with the engine, upload the scene files, publish the scene."""
+    config = config or {}
+    job = db.get_job(job_id)
+    if job is None:
+        logger.error("Job %s not found — dropping task", job_id)
+        return {"job_id": job_id, "success": False, "error": "job not found"}
+    if job["status"] in ("cancelled", "ready"):
+        logger.info("Job %s is %s — nothing to do", job_id, job["status"])
+        return {"job_id": job_id, "success": job["status"] == "ready"}
+
+    workspace = WORKSPACE_ROOT / job_id
+    (workspace / "input").mkdir(parents=True, exist_ok=True)
+    (workspace / "output").mkdir(parents=True, exist_ok=True)
+    ctx = _Context(job_id, job["result_summary"])
 
     try:
         engine = get_engine(engine_name)
+        engine.validate_environment()
+        ctx.progress(0.02, "Fetching your photos…")
 
-        # Step 1: Validate environment
-        progress_callback(0.02, "Validating environment...")
-        env_result = _run_async(engine.validate_environment())
-        if not env_result.is_valid:
-            raise RuntimeError(f"Environment validation failed: {'; '.join(env_result.errors)}")
-        for warning in env_result.warnings:
-            logger.warning(f"Environment warning: {warning}")
-
-        # Step 2: Resolve image paths (download from S3 if needed)
-        progress_callback(0.05, "Preparing input images...")
-        local_images = []
-        s3 = _get_s3_client()
-        bucket = os.getenv("S3_BUCKET_IMAGES", "homie-images")
-        
-        for img_path in image_paths:
-            p = Path(img_path)
-            if p.exists():
-                local_images.append(p)
-            else:
-                # Download from S3
-                local_file = workspace / "input" / p.name
+        s3 = _s3()
+        images_bucket = os.getenv("S3_BUCKET_IMAGES", "homie-images")
+        local_images: list[Path] = []
+        for key in image_keys:
+            dest = workspace / "input" / Path(key).name
+            if not dest.exists():
                 try:
-                    s3.download_file(bucket, img_path, str(local_file))
-                    local_images.append(local_file)
-                    logger.info(f"Downloaded S3 object {img_path} to {local_file}")
+                    s3.download_file(images_bucket, key, str(dest))
                 except Exception as e:
-                    logger.warning(f"Failed to download {img_path}: {e}")
-
+                    raise TransientEngineError(f"Could not download photo {key}: {e}") from e
+            local_images.append(dest)
         if not local_images:
-            raise RuntimeError("No valid input images available after downloading from storage")
+            raise EngineError("No photos to reconstruct from", "bad_input")
 
-        # Step 3: Validate inputs
-        input_result = _run_async(engine.validate_inputs(local_images))
-        if not input_result.is_valid:
-            raise RuntimeError(f"Input validation failed: {'; '.join(input_result.errors)}")
+        scene = engine.reconstruct(local_images, workspace / "output", config, ctx)
 
-        # Step 4: Prepare inputs
-        prepared = _run_async(engine.prepare_inputs(job_id, local_images, config))
+        ctx.check_cancelled()
+        ctx.progress(0.92, "Saving your 3D room…")
+        scenes_bucket = os.getenv("S3_BUCKET_SCENES", "homie-scenes")
+        uploaded: dict[str, dict[str, Any]] = {}
+        for name, path in scene.files.items():
+            key = f"scenes/{job_id}/{path.name}"
+            content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+            s3.upload_file(str(path), scenes_bucket, key, ExtraArgs={"ContentType": content_type})
+            uploaded[name] = {"key": key, "content_type": content_type, "size": path.stat().st_size}
 
-        # Step 5: Run reconstruction
-        output = _run_async(engine.run_reconstruction(prepared, _async_progress))
+        manifest = dict(scene.manifest)
+        manifest["artifactKeys"] = {name: info["key"] for name, info in uploaded.items()}
+        if not db.complete_job(job_id, engine_name, uploaded, manifest):
+            logger.info("Job %s was cancelled before it could be published", job_id)
+            return {"job_id": job_id, "success": False, "cancelled": True}
 
-        if not output.success:
-            raise RuntimeError(f"Reconstruction failed: {'; '.join(output.errors)}")
+        shutil.rmtree(workspace, ignore_errors=True)
+        logger.info("Job %s completed: %s", job_id, sorted(uploaded))
+        return {"job_id": job_id, "success": True, "artifacts": sorted(uploaded)}
 
-        # Step 6: Postprocess outputs
-        progress_callback(0.9, "Postprocessing and optimizing...")
-        artifacts = _run_async(engine.postprocess_outputs(output, workspace / "output"))
+    except JobCancelled:
+        logger.info("Job %s cancelled", job_id)
+        shutil.rmtree(workspace, ignore_errors=True)
+        return {"job_id": job_id, "success": False, "cancelled": True}
 
-        progress_callback(0.95, "Uploading artifacts...")
-        bucket_scenes = os.getenv("S3_BUCKET_SCENES", "homie-scenes")
-        
-        db_artifacts = []
-        for art_type, local_path in [
-            ("splat", artifacts.splat_path),
-            ("collider_mesh", artifacts.collider_mesh_path),
-            ("panorama", artifacts.panorama_path),
-            ("thumbnail", artifacts.thumbnail_path),
-        ]:
-            if local_path and local_path.exists():
-                s3_key = f"scenes/{job_id}/{local_path.name}"
-                s3.upload_file(str(local_path), bucket_scenes, s3_key)
-                # Ensure the path in the manifest points to the MinIO URL
-                if art_type == "splat":
-                    artifacts.manifest["artifacts"]["splat"] = f"http://localhost:9000/{bucket_scenes}/{s3_key}"
-                db_artifacts.append((s3_key, art_type, local_path.name, local_path.stat().st_size))
-
-        progress_callback(1.0, "Reconstruction complete!")
-
-        # Update DB: success
-        try:
-            with _get_db_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE reconstruction_jobs SET status = 'ready', progress = 1.0, current_message = 'Completed' WHERE id = %s",
-                        (job_id,)
-                    )
-                    # Insert artifacts
-                    for s3_key, art_type, filename, size in db_artifacts:
-                        cur.execute(
-                            "INSERT INTO reconstruction_artifacts (id, job_id, artifact_type, storage_key, original_filename, file_size_bytes, created_at, updated_at) "
-                            "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, NOW(), NOW())",
-                            (job_id, art_type, s3_key, filename, size)
-                        )
-                    # Create scene record using manifest
-                    cur.execute(
-                        "SELECT capture_session_id FROM reconstruction_jobs WHERE id = %s", (job_id,)
-                    )
-                    row = cur.fetchone()
-                    if row:
-                        session_id = row[0]
-                        cur.execute("SELECT room_id FROM capture_sessions WHERE id = %s", (session_id,))
-                        room_row = cur.fetchone()
-                        if room_row:
-                            room_id = room_row[0]
-                            manifest_json = json.dumps(artifacts.manifest)
-                            cur.execute(
-                                "INSERT INTO scene_manifests (id, room_id, job_id, schema_version, engine, representation, manifest_data, is_active, created_at) "
-                                "VALUES (gen_random_uuid(), %s, %s, 1, %s, 'gaussian_splat', %s, true, NOW())",
-                                (room_id, job_id, engine_name, manifest_json)
-                            )
-                            # Update room status
-                            cur.execute("UPDATE rooms SET status = 'processed' WHERE id = %s", (room_id,))
-                conn.commit()
-        except Exception as e:
-            logger.error(f"Failed to update database on success: {e}")
-
-        result = {
-            "job_id": job_id,
-            "success": True,
-            "engine": engine_name,
-            "manifest": artifacts.manifest,
-        }
-
-        logger.info(f"Reconstruction job {job_id} completed successfully")
-        return result
-
-    except Exception as exc:
-        logger.error(f"Reconstruction job {job_id} failed: {exc}", exc_info=True)
-
-        # Retry on transient errors
+    except TransientEngineError as exc:
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying job {job_id} (attempt {self.request.retries + 1}/{self.max_retries})")
-            raise self.retry(exc=exc)
+            delay = 30 * (2 ** self.request.retries)
+            logger.warning("Job %s hit a temporary error (%s); retrying in %ss", job_id, exc, delay)
+            db.update_progress(job_id, ctx._last_progress if ctx._last_progress > 0 else 0.05,
+                               "Temporary problem, retrying shortly…", "queued")
+            raise self.retry(exc=exc, countdown=delay)
+        db.mark_failed(job_id, "transient_exhausted", str(exc))
+        return {"job_id": job_id, "success": False, "error": str(exc)}
 
-        # Update DB: failed
-        try:
-            with _get_db_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE reconstruction_jobs SET status = 'failed', error_message = %s WHERE id = %s",
-                        (str(exc), job_id)
-                    )
-                conn.commit()
-        except Exception as dbe:
-            logger.error(f"Failed to update database on failure: {dbe}")
+    except EngineError as exc:
+        logger.error("Job %s failed: %s", job_id, exc)
+        db.mark_failed(job_id, exc.category, str(exc))
+        return {"job_id": job_id, "success": False, "error": str(exc)}
 
-        return {
-            "job_id": job_id,
-            "success": False,
-            "engine": engine_name,
-            "error": str(exc),
-        }
-    finally:
-        logger.removeHandler(file_handler)
-        file_handler.close()
+    except SoftTimeLimitExceeded:
+        db.mark_failed(job_id, "timeout", "Reconstruction took too long and was stopped")
+        return {"job_id": job_id, "success": False, "error": "timeout"}
+
+    except Exception as exc:  # unexpected bug — record it, don't retry (a retry could pay World Labs twice)
+        logger.exception("Job %s crashed", job_id)
+        db.mark_failed(job_id, "internal_error", f"{type(exc).__name__}: {exc}")
+        return {"job_id": job_id, "success": False, "error": str(exc)}

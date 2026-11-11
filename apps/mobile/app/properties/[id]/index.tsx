@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, Modal, TextInput, Alert, ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { roomsApi, propertiesApi, type Room, type Property } from '../../../services/api';
 import { Colors, Spacing, FontSize, Radius } from '../../../constants/theme';
 
@@ -58,7 +58,7 @@ export default function PropertyScreen() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleCreate = async () => {
     if (!newName.trim() || !id) return;
@@ -75,6 +75,8 @@ export default function PropertyScreen() {
       setCreating(false);
     }
   };
+
+  const readyCount = rooms.filter((r) => r.status === 'ready').length;
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>;
@@ -95,6 +97,18 @@ export default function PropertyScreen() {
           <Text style={styles.addBtnText}>+ Room</Text>
         </TouchableOpacity>
       </View>
+
+      {readyCount > 0 && (
+        <TouchableOpacity style={styles.tourBanner} onPress={() => router.push(`/properties/${id}/tour`)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tourTitle}>Walk through the house</Text>
+            <Text style={styles.tourSub}>
+              {readyCount} of {rooms.length} room{rooms.length === 1 ? '' : 's'} ready in 3D
+            </Text>
+          </View>
+          <Text style={styles.tourArrow}>›</Text>
+        </TouchableOpacity>
+      )}
 
       {rooms.length === 0 ? (
         <View style={styles.empty}>
@@ -193,6 +207,13 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: FontSize.xs, color: Colors.textSecondary },
   addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 7 },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: FontSize.sm },
+  tourBanner: {
+    flexDirection: 'row', alignItems: 'center', margin: Spacing.md, marginBottom: 0, padding: Spacing.md,
+    borderRadius: Radius.lg, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.primary,
+  },
+  tourTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
+  tourSub: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+  tourArrow: { fontSize: 28, color: Colors.primary, marginLeft: Spacing.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
   emptyIcon: { fontSize: 64, marginBottom: Spacing.md },
   emptyTitle: { fontSize: FontSize.xl, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
