@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "viewer",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "apps/viewer", "--", "--port", "5173"],
+      "port": 5173,
+      "url": "http://localhost:5173"
+    }
+  ]
+}

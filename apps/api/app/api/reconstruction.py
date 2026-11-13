@@ -1,15 +1,19 @@
 """Reconstruction job routes — no auth."""
 
+import asyncio
+import json
 import logging
+import time
 from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
-from app.core.database import get_db
+from app.core.database import async_session_factory, get_db
 from app.core.queue import enqueue_reconstruction, revoke
 from app.models.capture import CaptureFrame, CaptureSession
 from app.models.reconstruction import JobStatus, ReconstructionArtifact, ReconstructionJob
@@ -21,6 +25,11 @@ router = APIRouter(prefix="/reconstruction-jobs", tags=["reconstruction"])
 
 TERMINAL = (JobStatus.READY, JobStatus.FAILED, JobStatus.CANCELLED)
 SUPPORTED_ENGINES = {"image_blaster"}
+
+# Live progress stream (Server-Sent Events). Module-level so tests can speed them up.
+EVENT_POLL_S = 1.0
+EVENT_HEARTBEAT_S = 15.0
+EVENT_MAX_S = 60 * 60
 
 
 async def _get_job_or_404(job_id: UUID, db: AsyncSession) -> ReconstructionJob:
@@ -183,3 +192,44 @@ async def get_job_progress(job_id: UUID, db: AsyncSession = Depends(get_db)):
         "retry_count": job.retry_count,
         "error_message": job.error_message,
     }
+
+
+def _job_event(job: ReconstructionJob) -> str:
+    data = ReconstructionJobOut.model_validate(job).model_dump(mode="json")
+    return f"event: job\ndata: {json.dumps(data)}\n\n"
+
+
+@router.get("/{job_id}/events")
+async def stream_job_events(job_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Stream the job as Server-Sent Events: one `job` event whenever it changes, until it finishes.
+
+    The web app listens with EventSource, so the build panel moves the moment the worker reports progress.
+    """
+    await _get_job_or_404(job_id, db)  # 404 before the stream starts
+
+    async def events():
+        last: str | None = None
+        started = last_sent = time.monotonic()
+        yield "retry: 3000\n\n"
+        while time.monotonic() - started < EVENT_MAX_S:
+            async with async_session_factory() as session:
+                job = await session.get(ReconstructionJob, job_id)
+            if job is None:
+                yield 'event: gone\ndata: {}\n\n'
+                return
+            event = _job_event(job)
+            if event != last:
+                last, last_sent = event, time.monotonic()
+                yield event
+            elif time.monotonic() - last_sent >= EVENT_HEARTBEAT_S:
+                last_sent = time.monotonic()
+                yield ": keep-alive\n\n"
+            if job.status in TERMINAL:
+                return
+            await asyncio.sleep(EVENT_POLL_S)
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

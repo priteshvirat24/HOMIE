@@ -3,9 +3,12 @@ import {
   ApiError,
   buildRoom,
   createClient,
+  latestReadyRoom,
   MAX_PHOTOS,
+  plural,
   prettyRoomType,
   ROOM_TYPES,
+  shortCaption,
   statusLabel,
   TERMINAL_JOB_STATUSES,
   thumbnailUrl,
@@ -183,7 +186,7 @@ describe('helpers', () => {
 
   it.each([
     ['ready', 'Ready to walk'],
-    ['processing', 'Building 3D…'],
+    ['processing', 'Building'],
     ['created', 'Not captured'],
     ['failed', 'Failed'],
     ['mystery', 'mystery'],
@@ -191,5 +194,72 @@ describe('helpers', () => {
 
   it('terminal job statuses', () => {
     expect([...TERMINAL_JOB_STATUSES].sort()).toEqual(['cancelled', 'failed', 'ready'])
+  })
+})
+
+describe('scenes', () => {
+  it('reads the scene info for a room', async () => {
+    const { fn, calls } = fakeFetch([{ body: { room_id: 'r1', manifest_data: { caption: 'A room', urls: { panorama: '/p.png' } } } }])
+    const scene = await createClient('', fn).scenes.forRoom('r1')
+    expect(calls[0].url).toBe('/api/v1/scenes/r1/manifest')
+    expect(scene).toEqual({ caption: 'A room', urls: { panorama: '/p.png' } })
+  })
+
+  it('raises when a room has no scene', async () => {
+    const { fn } = fakeFetch([{ status: 404, body: { detail: 'No scene for this room' } }])
+    await expect(createClient('', fn).scenes.forRoom('r1')).rejects.toThrow('No scene for this room')
+  })
+})
+
+describe('display helpers', () => {
+  it.each([
+    [null, null],
+    [undefined, null],
+    ['', null],
+    ['A cosy living room', 'A cosy living room'],
+    ['A cosy living room.', 'A cosy living room'],
+    ['A bright kitchen. It has a window. And a cat.', 'A bright kitchen'],
+    ['Is this a hall? Yes it is.', 'Is this a hall'],
+  ])('shortCaption(%j) = %j', (input, out) => {
+    expect(shortCaption(input)).toBe(out)
+  })
+
+  it('shortCaption cuts long sentences on a word boundary', () => {
+    const long = 'word '.repeat(60).trim() + '.'
+    const out = shortCaption(long, 40)!
+    expect(out.endsWith('…')).toBe(true)
+    expect(out.length).toBeLessThanOrEqual(41)
+    expect(out).not.toMatch(/\s…$/)
+  })
+
+  it('latestReadyRoom picks the newest ready room', () => {
+    const rooms = [
+      { id: 'a', status: 'ready', updated_at: '2026-11-01T00:00:00Z' },
+      { id: 'b', status: 'ready', updated_at: '2026-11-12T00:00:00Z' },
+      { id: 'c', status: 'processing', updated_at: '2026-11-13T00:00:00Z' },
+    ]
+    expect(latestReadyRoom(rooms)?.id).toBe('b')
+  })
+
+  it('latestReadyRoom is null when nothing is ready', () => {
+    expect(latestReadyRoom([{ status: 'created', updated_at: '' }])).toBeNull()
+    expect(latestReadyRoom([])).toBeNull()
+  })
+
+  it('latestReadyRoom does not reorder its input', () => {
+    const rooms = [
+      { id: 'a', status: 'ready', updated_at: '1' },
+      { id: 'b', status: 'ready', updated_at: '2' },
+    ]
+    latestReadyRoom(rooms)
+    expect(rooms.map((r) => r.id)).toEqual(['a', 'b'])
+  })
+
+  it.each([
+    [0, 'room', '0 rooms'],
+    [1, 'room', '1 room'],
+    [2, 'house', '2 houses'],
+  ])('plural(%s, %s) = %s', (n, word, out) => {
+    expect(plural(n, word)).toBe(out)
   })
 })

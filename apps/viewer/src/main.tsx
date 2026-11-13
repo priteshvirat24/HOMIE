@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Dashboard } from './web/Dashboard'
+import '@fontsource-variable/instrument-sans'
+import '@fontsource/instrument-serif/400.css'
 import './styles.css'
 
 const Walkthrough = lazy(() => import('./Walkthrough').then((m) => ({ default: m.Walkthrough })))

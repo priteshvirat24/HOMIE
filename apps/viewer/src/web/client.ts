@@ -39,7 +39,17 @@ export interface Job {
   current_message?: string | null
   error_message?: string | null
   retry_count: number
+  error_category?: string | null
   created_at: string
+  started_at?: string | null
+  completed_at?: string | null
+}
+
+/** Scene manifest with storage keys resolved to URLs. */
+export interface SceneInfo {
+  caption?: string
+  worldId?: string
+  urls: { panorama?: string | null; thumbnail?: string | null; splat?: string | null }
 }
 
 export const ROOM_TYPES = [
@@ -131,6 +141,10 @@ export function createClient(base = '', fetchImpl: Fetch = (...a) => fetch(...a)
       retry: (jobId: string) => request<Job>(`/api/v1/reconstruction-jobs/${jobId}/retry`, { method: 'POST' }),
       cancel: (jobId: string) => request<Job>(`/api/v1/reconstruction-jobs/${jobId}/cancel`, { method: 'POST' }),
     },
+    scenes: {
+      forRoom: async (roomId: string) =>
+        (await request<{ room_id: string; manifest_data: SceneInfo }>(`/api/v1/scenes/${roomId}/manifest`)).manifest_data,
+    },
   }
 }
 
@@ -173,9 +187,32 @@ export function statusLabel(status: string): string {
       captured: 'Photos ready',
       uploading: 'Uploading',
       uploaded: 'Uploaded',
-      processing: 'Building 3D…',
+      processing: 'Building',
       ready: 'Ready to walk',
       failed: 'Failed',
     } as Record<string, string>
   )[status] ?? status
+}
+
+/** Most recently updated room that can be walked through. */
+export function latestReadyRoom<T extends Pick<Room, 'status' | 'updated_at'>>(rooms: T[]): T | null {
+  return (
+    rooms
+      .filter((r) => r.status === 'ready')
+      .sort((a, b) => (a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : 0))[0] ?? null
+  )
+}
+
+/** "2 rooms", "1 room" */
+export function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
+/** World Labs captions run to a full paragraph; keep the opening sentence for display. */
+export function shortCaption(caption: string | null | undefined, max = 140): string | null {
+  if (!caption) return null
+  const first = caption.trim().split(/(?<=[.!?])\s+/)[0] ?? ''
+  const text = first.replace(/[.!?]+$/, '')
+  if (text.length <= max) return text
+  return `${text.slice(0, max).replace(/\s+\S*$/, '')}…`
 }

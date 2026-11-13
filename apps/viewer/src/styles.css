@@ -1,12 +1,35 @@
 :root {
-  --bg: #0b0c0e;
-  --fg: #f4f4f5;
-  --muted: #a1a1aa;
-  --glass: rgba(18, 18, 22, 0.62);
-  --line: rgba(255, 255, 255, 0.14);
-  --accent: #f5a524;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: var(--fg);
+  /* Warm graphite: neutral enough to look at for hours, warm enough to feel like a room at night */
+  --ink-0: #0e0e0d;
+  --ink-1: #141413;
+  --ink-2: #1a1a19;
+  --ink-3: #222220;
+  --ink-4: #2a2a28;
+  --text-1: #edece8;
+  --text-2: #a7a59f;
+  --text-3: #8a8882;
+  --line: rgba(237, 236, 232, 0.08);
+  --line-2: rgba(237, 236, 232, 0.14);
+  /* Lamplight: the one accent. It means "lit, you can walk in" */
+  --lamp: #f1b45f;
+  --lamp-ink: #1d1406;
+  --lamp-dim: rgba(241, 180, 95, 0.16);
+  --bad: #e5484d;
+  --bad-text: #f2a3a5;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --font: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+
+  /* older names still used by the walkthrough */
+  --bg: var(--ink-1);
+  --fg: var(--text-1);
+  --muted: var(--text-2);
+  --glass: rgba(20, 20, 19, 0.72);
+  --accent: var(--lamp);
+
+  font-family: var(--font);
+  color: var(--text-1);
+  color-scheme: dark;
 }
 
 * {
@@ -45,16 +68,16 @@ body.mode-walk,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 40px;
+  gap: 8px;
+  height: 40px;
   padding: 0 16px;
   border-radius: 10px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.06);
-  font-weight: 600;
+  background: var(--ink-3);
+  font-weight: 500;
   font-size: 14px;
   text-decoration: none;
-  color: var(--fg);
+  color: var(--text-1);
 }
 
 .hud-actions {
@@ -72,6 +95,64 @@ button {
   cursor: pointer;
 }
 
+.keycaps {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line-2);
+  border-bottom-width: 2px;
+  background: var(--ink-3);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-1);
+}
+
+/* ---------- lamp: the signature status mark ---------- */
+
+.lamp {
+  flex: none;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+}
+
+.lamp-lit {
+  background: var(--lamp);
+  box-shadow: none;
+}
+
+.lamp-live {
+  background: var(--lamp);
+  box-shadow: none;
+  animation: lamp-live 1.6s var(--ease) infinite;
+}
+
+.lamp-fault {
+  background: var(--bad);
+  box-shadow: none;
+}
+
+@keyframes lamp-live {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---------- empty and error states ---------- */
+
 .center {
   position: absolute;
   inset: 0;
@@ -82,19 +163,27 @@ button {
   gap: 12px;
   padding: 24px;
   text-align: center;
+  background: var(--ink-1);
+}
+
+.center h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.1;
 }
 
 .center p {
-  color: var(--muted);
+  color: var(--text-2);
   max-width: 34ch;
   line-height: 1.5;
 }
 
 .spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--line);
-  border-top-color: var(--accent);
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--line-2);
+  border-top-color: var(--lamp);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
@@ -105,18 +194,82 @@ button {
   }
 }
 
+/* ---------- walkthrough: loading into a room ---------- */
+
 .loading {
   position: absolute;
   inset: 0;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: rgba(11, 12, 14, 0.88);
-  color: var(--muted);
-  z-index: 30;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: var(--ink-1);
+  color: var(--text-2);
+  overflow: hidden;
 }
+
+.loading > :not(.loading-backdrop) {
+  position: relative;
+}
+
+.loading-backdrop {
+  position: absolute;
+  inset: -24px;
+  background: center / cover no-repeat;
+  filter: blur(12px) brightness(0.32) saturate(0.9);
+  transform: scale(1.04);
+}
+
+.loading-label {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.loading-room,
+.loading h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(40px, 7vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+}
+
+.loading h2:not(.loading-room) {
+  font-size: 32px;
+}
+
+.loading p {
+  max-width: 36ch;
+  line-height: 1.5;
+}
+
+.loading-meter {
+  width: min(280px, 70vw);
+  height: 3px;
+  margin-top: 12px;
+  border-radius: 2px;
+  background: rgba(237, 236, 232, 0.16);
+  overflow: hidden;
+}
+
+.loading-meter > div {
+  height: 100%;
+  background: var(--lamp);
+  transform-origin: left center;
+  transition: transform 400ms var(--ease);
+}
+
+.loading-pct {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- walkthrough: touch controls ---------- */
 
 .touch-layer {
   position: absolute;
@@ -128,8 +281,8 @@ button {
 .stick {
   position: absolute;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(237, 236, 232, 0.3);
+  background: rgba(20, 20, 19, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,17 +290,19 @@ button {
 }
 
 .knob {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(237, 236, 232, 0.85);
 }
+
+/* ---------- walkthrough: heads-up display ---------- */
 
 .hud-top {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: 12px;
-  right: 12px;
+  top: max(16px, env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -160,45 +315,57 @@ button {
   pointer-events: auto;
 }
 
-.title {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 12px;
-  border-radius: 12px;
+.title,
+.chip,
+.room-chip,
+.help {
   background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--line);
 }
 
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 12px;
+}
+
 .title .house {
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
 }
 
 .title .room {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 20px;
 }
 
 .chip {
-  min-width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
   height: 40px;
   border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  font-size: 20px;
-  line-height: 1;
+  color: var(--text-1);
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+
+.chip:hover {
+  background: rgba(42, 42, 40, 0.86);
+  border-color: var(--line-2);
 }
 
 .rooms {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 8px;
@@ -208,6 +375,7 @@ button {
 .room-list {
   flex: 1;
   display: flex;
+  justify-content: center;
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -221,46 +389,90 @@ button {
 .room-chip {
   flex: none;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 7px 12px;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 14px 0 12px;
   border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  text-align: left;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+
+.room-chip-text {
+  display: flex;
+  flex-direction: column;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 16px;
 }
 
 .room-chip small {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
-  color: var(--muted);
-  text-transform: capitalize;
+  color: var(--text-2);
+}
+
+.room-chip:not(.pending):not(.active):hover {
+  background: rgba(42, 42, 40, 0.86);
+}
+
+.room-chip:not(.active) .lamp-lit {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--lamp);
 }
 
 .room-chip.active {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  background: rgba(42, 42, 40, 0.9);
+  border-color: rgba(241, 180, 95, 0.5);
 }
 
 .room-chip.pending {
-  opacity: 0.45;
+  color: var(--text-3);
+}
+
+.room-chip.pending small {
+  color: var(--text-3);
 }
 
 .help {
   position: absolute;
   left: 50%;
-  bottom: 84px;
+  bottom: 88px;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--line);
+  border-radius: 12px;
   font-size: 13px;
+  color: var(--text-2);
   white-space: nowrap;
   z-index: 10;
+  animation: help-in 400ms var(--ease) both;
+}
+
+.help-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--line-2);
+}
+
+@keyframes help-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help,
+  .lamp-live,
+  .spinner {
+    animation: none;
+  }
+
+  .loading-meter > div {
+    transition: none;
+  }
 }

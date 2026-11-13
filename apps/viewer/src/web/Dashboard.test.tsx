@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../Walkthrough', () => ({
@@ -51,8 +51,10 @@ describe('houses page', () => {
   it('lists houses', async () => {
     mockApi(() => ({ body: [house] }))
     render(<Dashboard />)
-    expect(await screen.findByText('Lake cottage')).toBeTruthy()
-    expect(screen.getByText('2 rooms')).toBeTruthy()
+    await screen.findAllByText('Lake cottage')
+    const grid = within(document.querySelector('.house-grid') as HTMLElement)
+    expect(grid.getByText('Lake cottage')).toBeTruthy()
+    expect(grid.getByText('2 rooms')).toBeTruthy()
   })
 
   it('shows an empty state', async () => {
@@ -180,7 +182,7 @@ describe('room page', () => {
     const input = document.querySelector('input[type=file]') as HTMLInputElement
     fireEvent.change(input, { target: { files: [photo('notes.txt', 'text/plain'), photo('a.jpg')] } })
     expect(screen.getByText('1 / 8 photos')).toBeTruthy()
-    expect(screen.getByText('Only image files can be used.')).toBeTruthy()
+    expect(screen.getByText('Only image files can be used')).toBeTruthy()
   })
 
   it('caps photos at 8', async () => {
@@ -237,7 +239,7 @@ describe('tour and not found', () => {
   it('reacts to hash changes', async () => {
     mockApi((url) => ({ body: url.endsWith('/properties') ? [house] : house }))
     render(<Dashboard />)
-    await screen.findByText('Lake cottage')
+    await screen.findAllByText('Lake cottage')
     await act(async () => {
       window.location.hash = `#/houses/${P}/tour`
       window.dispatchEvent(new HashChangeEvent('hashchange'))
@@ -250,5 +252,237 @@ describe('tour and not found', () => {
     mockApi(() => ({ body: {} }))
     render(<Dashboard />)
     expect(screen.getByText(/doesn't exist/)).toBeTruthy()
+  })
+})
+
+describe('home: featured room and house cards', () => {
+  const scene = { room_id: R, manifest_data: { caption: 'A cosy living room. With a sofa.', urls: { panorama: '/pano.png' } } }
+
+  function homeApi(rooms: unknown[]) {
+    return mockApi((url) => {
+      if (url === '/api/v1/properties') return { body: [house] }
+      if (url.endsWith('/rooms')) return { body: rooms }
+      if (url.includes('/scenes/')) return { body: scene }
+      return { body: house }
+    })
+  }
+
+  it('shows the latest ready room turning, with its caption and a walk-through link', async () => {
+    homeApi([room({ status: 'ready', updated_at: '2026-11-12' })])
+    const { container } = render(<Dashboard />)
+    expect(await screen.findByText('A cosy living room')).toBeTruthy()
+    const feature = container.querySelector('.feature') as HTMLElement
+    expect(within(feature).getByRole('heading', { name: 'Living' })).toBeTruthy()
+    expect(within(feature).getByRole('link', { name: 'Walk through' }).getAttribute('href')).toBe(`#/houses/${P}/tour/${R}`)
+    expect((feature.querySelector('.pano-strip img') as HTMLImageElement).getAttribute('src')).toBe('/pano.png')
+  })
+
+  it('invites the first room when nothing is ready', async () => {
+    homeApi([room()])
+    render(<Dashboard />)
+    expect(await screen.findByText('Your first room lights up here')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Walk through' })).toBeNull()
+  })
+
+  it('shows room photos and the ready count on the house card', async () => {
+    homeApi([room({ status: 'ready', thumbnail_key: 'scenes/j/t.webp' }), room({ id: 'r2', name: 'Bed' })])
+    const { container } = render(<Dashboard />)
+    expect(await screen.findByText('1 ready to walk')).toBeTruthy()
+    const img = container.querySelector('.house-shots img') as HTMLImageElement
+    expect(img.getAttribute('src')).toBe('/api/v1/assets/scenes/j/t.webp')
+  })
+
+  it('draws the plan when a house has no photos yet', async () => {
+    homeApi([room()])
+    const { container } = render(<Dashboard />)
+    await screen.findByText('Your first room lights up here')
+    await waitFor(() => expect(container.querySelector('.house-shots .empty-plan')).toBeTruthy())
+  })
+
+  it('lists every house in the sidebar', async () => {
+    homeApi([])
+    const { container } = render(<Dashboard />)
+    const side = container.querySelector('.sidebar') as HTMLElement
+    await waitFor(() => expect(within(side).getByRole('link', { name: /Lake cottage/ }).getAttribute('href')).toBe(`#/houses/${P}`))
+    expect(within(side).getByRole('link', { name: /All houses/ }).getAttribute('aria-current')).toBe('page')
+  })
+
+  it('focuses the new house form from the sidebar', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    homeApi([])
+    render(<Dashboard />)
+    fireEvent.click(screen.getByRole('button', { name: 'New house' }))
+    await act(async () => {
+      vi.advanceTimersByTime(100)
+    })
+    expect(document.activeElement?.id).toBe('house-name')
+    vi.useRealTimers()
+  })
+})
+
+describe('house page: floor plan', () => {
+  beforeEach(() => {
+    window.location.hash = `#/houses/${P}`
+  })
+
+  it('marks the open house in the sidebar', async () => {
+    mockApi((url) => (url === '/api/v1/properties' ? { body: [house] } : url.endsWith('/rooms') ? { body: [] } : { body: house }))
+    const { container } = render(<Dashboard />)
+    const side = container.querySelector('.sidebar') as HTMLElement
+    await waitFor(() => expect(within(side).getByRole('link', { name: /Lake cottage/ }).getAttribute('aria-current')).toBe('page'))
+  })
+
+  it('shows live progress for a room that is building', async () => {
+    mockApi((url) => {
+      if (url.endsWith('/rooms')) return { body: [room({ status: 'processing' })] }
+      if (url.startsWith('/api/v1/reconstruction-jobs?')) return { body: [{ id: 'j1', status: 'generating_world', progress: 0.37 }] }
+      return { body: house }
+    })
+    render(<Dashboard />)
+    expect(await screen.findByText('37%')).toBeTruthy()
+    expect(screen.getByRole('progressbar', { name: 'Build progress' }).getAttribute('aria-valuenow')).toBe('37')
+  })
+
+  it('lights ready rooms and draws the rest as plan', async () => {
+    mockApi((url) =>
+      url.endsWith('/rooms')
+        ? { body: [room({ status: 'ready', thumbnail_key: 'k.webp' }), room({ id: 'r2', name: 'Bed', room_type: 'bedroom' })] }
+        : { body: house },
+    )
+    const { container } = render(<Dashboard />)
+    await screen.findByText('Bed')
+    expect(container.querySelectorAll('.cell-lit')).toHaveLength(1)
+    expect(container.querySelectorAll('.cell-plan')).toHaveLength(1)
+    expect(container.querySelector('.cell-plan .cell-icon svg')).toBeTruthy()
+  })
+
+  it('links each room to its page', async () => {
+    mockApi((url) => (url.endsWith('/rooms') ? { body: [room()] } : { body: house }))
+    render(<Dashboard />)
+    await screen.findByText('Living')
+    expect(screen.getByRole('link', { name: /Living/ }).getAttribute('href')).toBe(`#/houses/${P}/rooms/${R}`)
+  })
+
+  it('counts rooms in the plan title', async () => {
+    mockApi((url) => (url.endsWith('/rooms') ? { body: [room(), room({ id: 'r2', name: 'Bed' })] } : { body: house }))
+    render(<Dashboard />)
+    expect(await screen.findByText('2 rooms')).toBeTruthy()
+  })
+})
+
+describe('room page: scene, rebuild and live build', () => {
+  beforeEach(() => {
+    window.location.hash = `#/houses/${P}/rooms/${R}`
+  })
+
+  function roomApi(over: { jobs?: unknown[]; room?: Record<string, unknown>; on?: (url: string, init?: RequestInit) => unknown } = {}) {
+    return mockApi((url, init) => {
+      const custom = over.on?.(url, init)
+      if (custom) return { body: custom }
+      if (url.startsWith('/api/v1/reconstruction-jobs?')) return { body: over.jobs ?? [] }
+      if (url.includes('/scenes/')) return { body: { room_id: R, manifest_data: { caption: 'A tidy study.', urls: { panorama: '/p.png' } } } }
+      if (url.includes('/rooms/')) return { body: room(over.room) }
+      return { body: house }
+    })
+  }
+
+  it('shows the panorama and caption of a ready room', async () => {
+    roomApi({ room: { status: 'ready' }, jobs: [{ id: 'j1', status: 'ready', progress: 1, completed_at: '2026-11-12T10:00:00Z' }] })
+    const { container } = render(<Dashboard />)
+    expect(await screen.findByText('A tidy study')).toBeTruthy()
+    expect(container.querySelector('.stage .pano-strip img')?.getAttribute('src')).toBe('/p.png')
+    expect(screen.getByText(/Built 12 Nov 2026|Built Nov 12, 2026/)).toBeTruthy()
+  })
+
+  it('shows the walking keys as keycaps', async () => {
+    roomApi({ room: { status: 'ready' }, jobs: [{ id: 'j1', status: 'ready', progress: 1 }] })
+    const { container } = render(<Dashboard />)
+    await screen.findByText('3D room ready')
+    expect([...container.querySelectorAll('.keys kbd')].map((k) => k.textContent)).toEqual(['W', 'A', 'S', 'D', 'Drag', 'Double-click'])
+  })
+
+  it('swaps the scene for the photo form when rebuilding, and back', async () => {
+    roomApi({ room: { status: 'ready' }, jobs: [{ id: 'j1', status: 'ready', progress: 1 }] })
+    render(<Dashboard />)
+    await screen.findByText('Rebuild this room')
+    expect(screen.queryByRole('button', { name: /Drop photos here/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Use new photos' }))
+    expect(screen.getByRole('button', { name: /Drop photos here/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Walk through' }).getAttribute('href')).toBe(`#/houses/${P}/tour/${R}`)
+    expect(screen.getByText('How to shoot it')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep the current room' }))
+    expect(screen.queryByRole('button', { name: /Drop photos here/ })).toBeNull()
+  })
+
+  it('walks through the build stages with the current one marked', async () => {
+    roomApi({ jobs: [{ id: 'j1', status: 'generating_world', progress: 0.5, current_message: 'Building your 3D room… (2m 10s)', created_at: '2026-11-14T10:00:00Z' }] })
+    const { container } = render(<Dashboard />)
+    await screen.findByText('50%')
+    const steps = [...container.querySelectorAll('.step')]
+    expect(steps.map((s) => s.className.split(' ')[1])).toEqual(['step-done', 'step-done', 'step-now', 'step-next', 'step-next'])
+    expect(container.querySelector('[aria-current="step"]')?.textContent).toContain('Building the 3D world')
+    expect(screen.getByText('Building your 3D room… (2m 10s)')).toBeTruthy()
+    expect(screen.getByText(/elapsed/)).toBeTruthy()
+  })
+
+  it('says it is checking when it cannot stream', async () => {
+    roomApi({ jobs: [{ id: 'j1', status: 'queued', progress: 0 }] })
+    render(<Dashboard />)
+    expect(await screen.findByText('Checking every 3s')).toBeTruthy()
+  })
+
+  it('cancels a running build', async () => {
+    const calls = roomApi({
+      jobs: [{ id: 'j1', status: 'generating_world', progress: 0.3 }],
+      on: (url, init) => (url.endsWith('/cancel') && init?.method === 'POST' ? { id: 'j1', status: 'cancelled', progress: 0.3 } : null),
+    })
+    render(<Dashboard />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect(await screen.findByText('Build cancelled')).toBeTruthy()
+    expect(calls.some((c) => c.url === '/api/v1/reconstruction-jobs/j1/cancel')).toBe(true)
+  })
+
+  it('retries a failed build', async () => {
+    const calls = roomApi({
+      jobs: [{ id: 'j1', status: 'failed', progress: 0.3, error_message: 'Timed out' }],
+      on: (url, init) => (url.endsWith('/retry') && init?.method === 'POST' ? { id: 'j1', status: 'queued', progress: 0 } : null),
+    })
+    render(<Dashboard />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Building your 3D room')).toBeTruthy()
+    expect(calls.some((c) => c.url === '/api/v1/reconstruction-jobs/j1/retry')).toBe(true)
+  })
+
+  it('fills the shot guide as photos are added', async () => {
+    roomApi()
+    const { container } = render(<Dashboard />)
+    await screen.findByRole('heading', { name: 'Living' })
+    expect(container.querySelectorAll('.wedge.taken')).toHaveLength(0)
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const photo = (n: string) => new File([new Uint8Array([1])], n, { type: 'image/jpeg' })
+    fireEvent.change(input, { target: { files: [photo('a.jpg'), photo('b.jpg')] } })
+    expect(container.querySelectorAll('.wedge.taken')).toHaveLength(2)
+    expect(container.querySelectorAll('.slot.filled')).toHaveLength(2)
+    expect(container.querySelectorAll('.slot')).toHaveLength(8)
+  })
+
+  it('accepts iPhone HEIC photos with no MIME type', async () => {
+    roomApi()
+    render(<Dashboard />)
+    await screen.findByRole('heading', { name: 'Living' })
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File([new Uint8Array([1])], 'IMG_6159.HEIC', { type: '' })] } })
+    expect(screen.getByText('1 / 8 photos')).toBeTruthy()
+  })
+
+  it('keeps the photos it sent on the build panel', async () => {
+    const calls = roomApi()
+    render(<Dashboard />)
+    await screen.findByRole('heading', { name: 'Living' })
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' })] } })
+    fireEvent.click(screen.getByRole('button', { name: /Build 3D room from 1 photo$/ }))
+    expect(await screen.findByText('1 photo sent')).toBeTruthy()
+    expect(calls.filter((c) => c.url.endsWith('/finalize'))).toHaveLength(1)
   })
 })
