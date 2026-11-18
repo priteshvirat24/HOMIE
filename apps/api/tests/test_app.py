@@ -57,9 +57,10 @@ async def test_openapi_lists_core_routes(client):
         assert p in paths, p
 
 
-async def test_no_auth_routes_left(client):
+async def test_only_the_sign_in_routes_exist(client):
     paths = (await client.get("/openapi.json")).json()["paths"]
-    assert not any(p.startswith("/api/v1/auth") for p in paths)
+    assert sorted(p for p in paths if p.startswith("/api/v1/auth")) == [
+        "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/me"]
 
 
 @pytest.mark.parametrize(

@@ -1,8 +1,9 @@
 /** App frame: a sidebar with every house, and a top bar with the path and the page's main action. */
 import { useEffect, useState } from 'react'
-import { House, Plus } from 'lucide-react'
+import { House, LogOut, Plus } from 'lucide-react'
 import { api, type Property } from './client'
 import { href, useRoute } from './router'
+import { useAuth } from './SignIn'
 
 export interface Crumb {
   label: string
@@ -48,6 +49,7 @@ export function newHouse() {
 function Sidebar() {
   const houses = useHouses()
   const route = useRoute()
+  const auth = useAuth()
   const current = 'propertyId' in route ? route.propertyId : null
 
   return (
@@ -84,12 +86,26 @@ function Sidebar() {
         </div>
       </nav>
 
-      <p className="side-foot">3D rooms by World Labs Marble</p>
+      <div className="side-foot">
+        {auth.required && (
+          <div className="side-user">
+            <span className="side-avatar" aria-hidden>
+              {(auth.username ?? '?').charAt(0).toUpperCase()}
+            </span>
+            <span className="side-name">{auth.username}</span>
+            <button className="side-signout" onClick={auth.signOut} aria-label="Sign out" title="Sign out">
+              <LogOut size={16} strokeWidth={1.5} aria-hidden />
+            </button>
+          </div>
+        )}
+        <p>3D rooms by World Labs Marble</p>
+      </div>
     </aside>
   )
 }
 
 export function Shell({ crumbs, children, actions }: { crumbs: Crumb[]; children: React.ReactNode; actions?: React.ReactNode }) {
+  const auth = useAuth()
   return (
     <div className="web">
       <Sidebar />
@@ -103,7 +119,14 @@ export function Shell({ crumbs, children, actions }: { crumbs: Crumb[]; children
               <span key={i}>{c.to ? <a href={c.to}>{c.label}</a> : <span aria-current="page">{c.label}</span>}</span>
             ))}
           </nav>
-          <div className="topbar-actions">{actions}</div>
+          <div className="topbar-actions">
+            {actions}
+            {auth.required && (
+              <button className="chip-btn signout-compact" onClick={auth.signOut} aria-label="Sign out" title="Sign out">
+                <LogOut size={16} strokeWidth={1.5} aria-hidden />
+              </button>
+            )}
+          </div>
         </header>
         <main className="page">{children}</main>
       </div>

@@ -1,8 +1,10 @@
 import type { PropertyTour, SceneManifest, TourRoom } from './types'
+import { signedOut } from './web/client'
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path)
   if (!res.ok) {
+    if (res.status === 401) signedOut()
     const text = await res.text().catch(() => '')
     let detail = text
     try {

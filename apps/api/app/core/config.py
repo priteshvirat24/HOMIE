@@ -10,7 +10,8 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parents[2] / ".env"),
+        # the repository's .env (shared with the worker), then an optional apps/api/.env that wins
+        env_file=(str(Path(__file__).resolve().parents[4] / ".env"), str(Path(__file__).resolve().parents[2] / ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -38,6 +39,11 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_secret_key: str = "dev-secret"
     api_cors_origins: str = "http://localhost:8081,http://localhost:5173,exp://localhost:8081"
+
+    # Sign-in: one account. Leave APP_PASSWORD empty to turn sign-in off (local development, tests).
+    app_username: str = "admin"
+    app_password: str = ""
+    session_secret: str = ""
 
     # JWT (kept for future use)
     jwt_secret_key: str = "dev-jwt-secret"

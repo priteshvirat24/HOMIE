@@ -1,21 +1,24 @@
-"""HOMIE API — FastAPI application (no auth)."""
+"""HOMIE API — FastAPI application. Sign-in is on when APP_PASSWORD is set."""
 
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.auth import current_user
+from app.api.auth import router as auth_router
 from app.api.capture import router as capture_router
 from app.api.health import router as health_router
 from app.api.properties import router as properties_router
 from app.api.reconstruction import router as reconstruction_router
 from app.api.rooms import router as rooms_router
 from app.api.scenes import router as scenes_router
+from app.core import auth
 from app.core.config import get_settings
 from app.core.storage import ensure_buckets
 
@@ -54,8 +57,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def require_sign_in(request: Request, call_next):
+    """Every /api/ route needs a signed-in session (or Basic credentials), except signing in itself.
+
+    The web app bundle at /viewer/ stays public: it holds no data and shows the sign-in page itself.
+    """
+    path = request.url.path
+    if auth.enabled() and path.startswith("/api/") and not path.startswith("/api/v1/auth/") and request.method != "OPTIONS":
+        if not current_user(request):
+            return JSONResponse({"detail": "Sign in to continue"}, status_code=401)
+    return await call_next(request)
+
+
 app.include_router(health_router)
-for router in (properties_router, rooms_router, capture_router, reconstruction_router, scenes_router):
+for router in (auth_router, properties_router, rooms_router, capture_router, reconstruction_router, scenes_router):
     app.include_router(router, prefix="/api/v1")
 
 if VIEWER_DIST.exists():

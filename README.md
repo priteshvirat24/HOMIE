@@ -51,19 +51,34 @@ cd apps/mobile && npm install --legacy-peer-deps && npx expo start
 On a real phone, set `EXPO_PUBLIC_API_URL` to your computer's LAN address (e.g. `http://192.168.1.20:8000`).
 Photos upload through the API and scene files stream back through it, so the phone only needs that one address.
 
+### Sign-in
+
+The web app and every `/api/` route sit behind one account, set in `.env`:
+
+```bash
+APP_USERNAME=admin
+APP_PASSWORD=12345        # leave empty to turn sign-in off
+SESSION_SECRET=<long random string>
+```
+
+Signing in sets a 30-day HttpOnly cookie; changing the password signs everyone out. Five wrong passwords
+from one address lock sign-in for five minutes. Scripts and the phone app can send the same username and
+password as HTTP Basic credentials instead. Use a stronger password before the app is reachable from
+outside your network.
+
 Each room build costs World Labs credits and takes about 5 minutes. A Celery retry resumes the same
 World Labs operation instead of paying for a second one; the “Try again” button starts a new generation.
 
-## Tests (375)
+## Tests (526)
 
 The API and worker suites use the docker-compose services; they create and drop their own databases
 (`homie_api_test`, `homie_worker_test`) and buckets. World Labs is replaced by a local fake server
 (`apps/worker/tests/fake_worldlabs.py`), so tests never spend credits.
 
 ```bash
-cd apps/api && .venv/bin/python -m pytest          # 159 tests
+cd apps/api && .venv/bin/python -m pytest          # 214 tests
 cd apps/worker && .venv/bin/python -m pytest       # 120 tests
-npm run test:viewer                                # 81 tests (web app + viewer)
+npm run test:viewer                                # 175 tests (web app + viewer)
 cd apps/mobile && npm test                         # 17 tests (API client)
 ```
 

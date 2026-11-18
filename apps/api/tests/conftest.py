@@ -26,6 +26,10 @@ TEST_ENV = {
     "S3_SECRET_KEY": "test",
     "S3_BUCKET_IMAGES": "homie-api-test-images",
     "S3_BUCKET_SCENES": "homie-api-test-scenes",
+    # sign-in off by default (the root .env may turn it on); test_auth.py turns it on per test
+    "APP_USERNAME": "admin",
+    "APP_PASSWORD": "",
+    "SESSION_SECRET": "test-session-secret",
 }
 os.environ.update(TEST_ENV)
 

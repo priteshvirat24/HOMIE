@@ -81,6 +81,17 @@ export class ApiError extends Error {
 
 type Fetch = typeof fetch
 
+export interface Session {
+  username: string | null
+  auth_required: boolean
+}
+
+/** Any API call that comes back 401 means the session ended; the sign-in gate listens for this. */
+export const SIGNED_OUT_EVENT = 'homie:signed-out'
+export function signedOut() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
+}
+
 export function createClient(base = '', fetchImpl: Fetch = (...a) => fetch(...a)) {
   async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const isForm = typeof FormData !== 'undefined' && init?.body instanceof FormData
@@ -89,6 +100,7 @@ export function createClient(base = '', fetchImpl: Fetch = (...a) => fetch(...a)
       headers: { ...(isForm || !init?.body ? {} : { 'Content-Type': 'application/json' }), ...init?.headers },
     })
     if (!res.ok) {
+      if (res.status === 401 && !path.startsWith('/api/v1/auth/')) signedOut()
       const text = await res.text().catch(() => '')
       let detail: unknown = text
       try {
@@ -140,6 +152,11 @@ export function createClient(base = '', fetchImpl: Fetch = (...a) => fetch(...a)
         (await request<Job[]>(`/api/v1/reconstruction-jobs?room_id=${roomId}&limit=1`))[0] ?? null,
       retry: (jobId: string) => request<Job>(`/api/v1/reconstruction-jobs/${jobId}/retry`, { method: 'POST' }),
       cancel: (jobId: string) => request<Job>(`/api/v1/reconstruction-jobs/${jobId}/cancel`, { method: 'POST' }),
+    },
+    auth: {
+      me: () => request<Session>('/api/v1/auth/me'),
+      login: (username: string, password: string) => request<Session>('/api/v1/auth/login', json('POST', { username, password })),
+      logout: () => request<void>('/api/v1/auth/logout', { method: 'POST' }),
     },
     scenes: {
       forRoom: async (roomId: string) =>
